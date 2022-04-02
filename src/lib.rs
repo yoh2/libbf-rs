@@ -13,5 +13,6 @@ pub mod prelude {
     pub use crate::predefined::*;
     pub use crate::program::*;
     pub use crate::runtime::*;
+    pub use crate::token::simple::*;
     pub use crate::token::*;
 }
