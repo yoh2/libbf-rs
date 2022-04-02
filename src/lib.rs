@@ -8,7 +8,7 @@ pub mod token;
 pub mod prelude {
     pub use crate::error::*;
     pub use crate::parser::*;
-    pub use crate::predefined::brainfuxk::*;
+    pub use crate::predefined::brainfxck::*;
     pub use crate::predefined::ook::*;
     pub use crate::predefined::*;
     pub use crate::program::*;

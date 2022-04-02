@@ -1,4 +1,4 @@
-pub mod brainfuxk {
+pub mod brainfxck {
     use crate::token::simple::{SimpleTokenSpec, SimpleTokenizer};
 
     pub const TOKEN_SPEC: SimpleTokenSpec<
