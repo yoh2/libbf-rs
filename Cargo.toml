@@ -1,6 +1,6 @@
 [package]
 name = "libbf"
-version = "0.0.1"
+version = "0.0.2"
 authors = ["yoh2 <yoh2.sdj@gmail.com>"]
 edition = "2021"
 description = "Brainfu*k and derived language interpreter library"
