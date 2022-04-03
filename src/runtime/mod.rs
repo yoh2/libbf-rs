@@ -98,8 +98,11 @@ where
 
     fn input(&mut self) -> Result<(), RuntimeError> {
         let data = self.memory.get_mut(self.pointer)?;
-        self.input.read_exact(std::slice::from_mut(data))?;
-        Ok(())
+        if self.input.read(std::slice::from_mut(data))? == 0 {
+            Err(RuntimeError::Eof)
+        } else {
+            Ok(())
+        }
     }
 
     fn output(&mut self) -> Result<(), RuntimeError> {
@@ -285,15 +288,41 @@ mod test {
         }
     }
 
+    struct TestErrorReader;
+
+    impl Read for TestErrorReader {
+        fn read(&mut self, _buf: &mut [u8]) -> Result<usize, std::io::Error> {
+            Err(std::io::Error::new(std::io::ErrorKind::Other, "test error"))
+        }
+    }
+
     #[test]
     fn test_run_input_error() {
+        use Instruction::*;
+        let program = vec![Input];
+        let input = TestErrorReader;
+        let mut output = vec![];
+        let result = run(&program, input, &mut output);
+        if let Err(e) = result {
+            if let RuntimeError::IoError(_) = e {
+                // OK
+            } else {
+                panic!("unexpected error: {e}");
+            }
+        } else {
+            assert!(false, "unexpectedly succeeded");
+        }
+    }
+
+    #[test]
+    fn test_run_input_eof() {
         use Instruction::*;
         let program = vec![Input];
         let input: &[u8] = &[];
         let mut output = vec![];
         let result = run(&program, input, &mut output);
         if let Err(e) = result {
-            if let RuntimeError::IoError(_) = e {
+            if let RuntimeError::Eof = e {
                 // OK
             } else {
                 panic!("unexpected error: {e}");
