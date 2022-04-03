@@ -125,19 +125,27 @@ where
     }
 }
 
-pub fn parse(
-    tokenizer: &impl for<'x> Tokenizer<'x>,
-    mut reader: impl Read,
-) -> Result<Program, ParseOrIoError> {
-    let mut source = String::new();
-    let _ = reader.read_to_string(&mut source)?;
-    parse_str(tokenizer, &source).map_err(ParseOrIoError::ParseError)
+pub struct Parser<T> {
+    tokenizer: T,
 }
 
-pub fn parse_str(
-    tokenizer: &impl for<'x> Tokenizer<'x>,
-    source: &str,
-) -> Result<Program, ParseError> {
-    let mut context = ParseContext::new(tokenizer.token_stream(source));
-    context.parse(true)
+impl<T> Parser<T>
+where
+    for<'x> T: Tokenizer<'x>,
+{
+    pub fn new(tokenizer: T) -> Self {
+        Self { tokenizer }
+    }
+
+    pub fn parse(&self, mut reader: impl Read) -> Result<Program, ParseOrIoError> {
+        let mut source = String::new();
+        let _ = reader.read_to_string(&mut source)?;
+        let program = self.parse_str(&source)?;
+        Ok(program)
+    }
+
+    pub fn parse_str(&self, source: &str) -> Result<Program, ParseError> {
+        let mut context = ParseContext::new(self.tokenizer.token_stream(source));
+        context.parse(true)
+    }
 }
