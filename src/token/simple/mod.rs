@@ -20,6 +20,9 @@ pub struct SimpleTokenSpec<S1, S2, S3, S4, S5, S6, S7, S8> {
     pub loop_tail: S8,
 }
 
+/// A variant of `SimpleTokenSpec` where all members have the same type.
+pub type SimpleTokenSpec1<S> = SimpleTokenSpec<S, S, S, S, S, S, S, S>;
+
 impl<S1, S2, S3, S4, S5, S6, S7, S8> SimpleTokenSpec<S1, S2, S3, S4, S5, S6, S7, S8>
 where
     S1: ToString,

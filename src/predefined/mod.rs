@@ -1,17 +1,8 @@
 #[cfg(feature = "brainfxck")]
 pub mod brainfxck {
-    use crate::token::simple::{SimpleTokenSpec, SimpleTokenizer};
+    use crate::token::simple::{SimpleTokenSpec1, SimpleTokenizer};
 
-    pub const TOKEN_SPEC: SimpleTokenSpec<
-        &'static str,
-        &'static str,
-        &'static str,
-        &'static str,
-        &'static str,
-        &'static str,
-        &'static str,
-        &'static str,
-    > = SimpleTokenSpec {
+    pub const TOKEN_SPEC: SimpleTokenSpec1<&str> = SimpleTokenSpec1 {
         ptr_inc: ">",
         ptr_dec: "<",
         data_inc: "+",
