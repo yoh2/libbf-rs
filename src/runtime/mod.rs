@@ -1,6 +1,13 @@
+mod internal;
+mod runner;
+mod step_runner;
+
 use crate::{error::RuntimeError, prelude::Program, program::Instruction};
 
 use std::io::{Read, Write};
+
+pub use self::runner::Runner;
+pub use self::step_runner::StepRunner;
 
 /// Memory size
 #[derive(Debug, Clone, Copy)]
@@ -13,125 +20,6 @@ pub enum MemorySize {
     BothInfinite,
 }
 
-pub struct Memory {
-    size: MemorySize,
-    /// memory data for [0..]
-    right_data: Vec<u8>,
-    /// memory data for [..-1]
-    left_data: Vec<u8>,
-}
-
-impl Memory {
-    fn new(size: MemorySize) -> Self {
-        let right_data = if let MemorySize::Fixed(len) = size {
-            if len > isize::MAX as usize {
-                panic!("memory size larger han isize::MAX is not supported.");
-            }
-            vec![0; len]
-        } else {
-            vec![]
-        };
-        let left_data = vec![];
-
-        Self {
-            size,
-            right_data,
-            left_data,
-        }
-    }
-
-    fn get_mut(&mut self, address: isize) -> Result<&mut u8, RuntimeError> {
-        if address >= 0 {
-            if (address as usize) >= self.right_data.len() {
-                if let MemorySize::Fixed(_) = self.size {
-                    return Err(RuntimeError::OutOfMemoryBounds(address));
-                }
-                self.right_data.resize(address as usize + 1, 0);
-            }
-            Ok(&mut self.right_data[address as usize])
-        } else if let MemorySize::BothInfinite = self.size {
-            let left_address = (-(address + 1)) as usize;
-            if left_address >= self.left_data.len() {
-                self.left_data.resize(left_address + 1, 0);
-            }
-            Ok(&mut self.left_data[left_address])
-        } else {
-            Err(RuntimeError::OutOfMemoryBounds(address))
-        }
-    }
-}
-
-struct Runtime<R, W> {
-    input: R,
-    output: W,
-    memory: Memory,
-    pointer: isize,
-}
-
-impl<R, W> Runtime<R, W>
-where
-    R: Read,
-    W: Write,
-{
-    fn new(input: R, output: W, memsize: MemorySize) -> Self {
-        Self {
-            input,
-            output,
-            memory: Memory::new(memsize),
-            pointer: 0,
-        }
-    }
-
-    fn add_pointer(&mut self, operand: isize) -> Result<(), RuntimeError> {
-        self.pointer += operand;
-        Ok(())
-    }
-
-    fn add_data(&mut self, operand: isize) -> Result<(), RuntimeError> {
-        let data = self.memory.get_mut(self.pointer)?;
-        *data = (*data as isize).wrapping_add(operand) as u8;
-        Ok(())
-    }
-
-    fn input(&mut self) -> Result<(), RuntimeError> {
-        let data = self.memory.get_mut(self.pointer)?;
-        if self.input.read(std::slice::from_mut(data))? == 0 {
-            Err(RuntimeError::Eof)
-        } else {
-            Ok(())
-        }
-    }
-
-    fn output(&mut self) -> Result<(), RuntimeError> {
-        let data = self.memory.get_mut(self.pointer)?;
-        self.output.write_all(std::slice::from_ref(data))?;
-        Ok(())
-    }
-
-    // this method cannot call more than once on the same instance
-    fn run(&mut self, program: &Program) -> Result<(), RuntimeError> {
-        self.run_internal(program.instructions())
-    }
-
-    fn run_internal(&mut self, instructions: &[Instruction]) -> Result<(), RuntimeError> {
-        for inst in instructions {
-            match inst {
-                Instruction::PAdd(operand) => self.add_pointer(*operand)?,
-                Instruction::DAdd(operand) => self.add_data(*operand)?,
-                Instruction::Output => self.output()?,
-                Instruction::Input => self.input()?,
-                Instruction::UntilZero(sub) => {
-                    while *self.memory.get_mut(self.pointer)? != 0 {
-                        self.run_internal(sub)?;
-                    }
-                }
-            }
-        }
-
-        Ok(())
-    }
-}
-
 pub const DEFAULT_MEMSIZE: MemorySize = MemorySize::Fixed(30000);
 
 pub fn run<R, W>(program: &Program, input: R, output: W) -> Result<(), RuntimeError>
@@ -139,7 +27,7 @@ where
     R: Read,
     W: Write,
 {
-    run_with_memsize(program, input, output, DEFAULT_MEMSIZE)
+    Runner::new(program, input, output).run()
 }
 
 pub fn run_with_memsize<R, W>(
@@ -152,8 +40,7 @@ where
     R: Read,
     W: Write,
 {
-    let mut runtime = Runtime::new(input, output, memsize);
-    runtime.run(program)
+    Runner::with_memsize(program, input, output, memsize).run()
 }
 
 #[cfg(test)]
