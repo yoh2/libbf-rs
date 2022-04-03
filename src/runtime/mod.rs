@@ -1,7 +1,4 @@
-use crate::{
-    error::RuntimeError,
-    program::{Instruction, ProgramRef},
-};
+use crate::{error::RuntimeError, prelude::Program, program::Instruction};
 
 use std::io::{Read, Write};
 
@@ -112,8 +109,12 @@ where
     }
 
     // this method cannot call more than once on the same instance
-    fn run(&mut self, program: ProgramRef) -> Result<(), RuntimeError> {
-        for inst in program {
+    fn run(&mut self, program: &Program) -> Result<(), RuntimeError> {
+        self.run_internal(program.instructions())
+    }
+
+    fn run_internal(&mut self, instructions: &[Instruction]) -> Result<(), RuntimeError> {
+        for inst in instructions {
             match inst {
                 Instruction::PAdd(operand) => self.add_pointer(*operand)?,
                 Instruction::DAdd(operand) => self.add_data(*operand)?,
@@ -121,7 +122,7 @@ where
                 Instruction::Input => self.input()?,
                 Instruction::UntilZero(sub) => {
                     while *self.memory.get_mut(self.pointer)? != 0 {
-                        self.run(sub)?;
+                        self.run_internal(sub)?;
                     }
                 }
             }
@@ -133,7 +134,7 @@ where
 
 pub const DEFAULT_MEMSIZE: MemorySize = MemorySize::Fixed(30000);
 
-pub fn run<R, W>(program: ProgramRef, input: R, output: W) -> Result<(), RuntimeError>
+pub fn run<R, W>(program: &Program, input: R, output: W) -> Result<(), RuntimeError>
 where
     R: Read,
     W: Write,
@@ -142,7 +143,7 @@ where
 }
 
 pub fn run_with_memsize<R, W>(
-    program: ProgramRef,
+    program: &Program,
     input: R,
     output: W,
     memsize: MemorySize,
@@ -161,7 +162,7 @@ mod test {
 
     #[test]
     fn test_run_empty_program() {
-        let program = vec![];
+        let program = Program::new([]);
         let input: &[u8] = &[];
         let mut output = vec![];
         let result = run(&program, input, &mut output);
@@ -173,7 +174,7 @@ mod test {
     #[test]
     fn test_run_input_output() {
         use Instruction::*;
-        let program = vec![Input, Output, Input, Output];
+        let program = Program::new([Input, Output, Input, Output]);
         let input: &[u8] = &[42, 53];
         let mut output = vec![];
         let result = run(&program, input, &mut output);
@@ -187,7 +188,7 @@ mod test {
     #[test]
     fn test_run_dadd_overflow() {
         use Instruction::*;
-        let program = vec![Input, DAdd(3), Output];
+        let program = Program::new([Input, DAdd(3), Output]);
         let input: &[u8] = &[254];
         let mut output = vec![];
         let result = run(&program, input, &mut output);
@@ -201,7 +202,7 @@ mod test {
     #[test]
     fn test_run_out_of_memory_bounds_left() {
         use Instruction::*;
-        let program = vec![PAdd(-1), DAdd(1)];
+        let program = Program::new([PAdd(-1), DAdd(1)]);
         let input: &[u8] = &[];
         let mut output = vec![];
         let result = run(&program, input, &mut output);
@@ -219,7 +220,7 @@ mod test {
     #[test]
     fn test_run_out_of_memory_bounds_left_for_right_infinity() {
         use Instruction::*;
-        let program = vec![PAdd(-1), DAdd(1)];
+        let program = Program::new([PAdd(-1), DAdd(1)]);
         let input: &[u8] = &[];
         let mut output = vec![];
         let result = run_with_memsize(&program, input, &mut output, MemorySize::RightInfinite);
@@ -237,7 +238,7 @@ mod test {
     #[test]
     fn test_run_negative_memory_address_access() {
         use Instruction::*;
-        let program = vec![PAdd(-1), DAdd(1)];
+        let program = Program::new([PAdd(-1), DAdd(1)]);
         let input: &[u8] = &[];
         let mut output = vec![];
         let result = run_with_memsize(&program, input, &mut output, MemorySize::BothInfinite);
@@ -249,7 +250,7 @@ mod test {
     #[test]
     fn test_run_out_of_memory_bounds_right() {
         use Instruction::*;
-        let program = vec![PAdd(30000), DAdd(1)];
+        let program = Program::new([PAdd(30000), DAdd(1)]);
         let input: &[u8] = &[];
         let mut output = vec![];
         let result = run(&program, input, &mut output);
@@ -267,7 +268,7 @@ mod test {
     #[test]
     fn test_run_positive_memory_address_access_for_right_inifinite() {
         use Instruction::*;
-        let program = vec![PAdd(65536), DAdd(1)];
+        let program = Program::new([PAdd(65536), DAdd(1)]);
         let input: &[u8] = &[];
         let mut output = vec![];
         let result = run_with_memsize(&program, input, &mut output, MemorySize::RightInfinite);
@@ -279,7 +280,7 @@ mod test {
     #[test]
     fn test_run_positive_memory_address_access_for_both_inifinite() {
         use Instruction::*;
-        let program = vec![PAdd(65536), DAdd(1)];
+        let program = Program::new([PAdd(65536), DAdd(1)]);
         let input: &[u8] = &[];
         let mut output = vec![];
         let result = run_with_memsize(&program, input, &mut output, MemorySize::BothInfinite);
@@ -299,7 +300,7 @@ mod test {
     #[test]
     fn test_run_input_error() {
         use Instruction::*;
-        let program = vec![Input];
+        let program = Program::new([Input]);
         let input = TestErrorReader;
         let mut output = vec![];
         let result = run(&program, input, &mut output);
@@ -317,7 +318,7 @@ mod test {
     #[test]
     fn test_run_input_eof() {
         use Instruction::*;
-        let program = vec![Input];
+        let program = Program::new([Input]);
         let input: &[u8] = &[];
         let mut output = vec![];
         let result = run(&program, input, &mut output);
@@ -335,7 +336,7 @@ mod test {
     #[test]
     fn test_run_output_error() {
         use Instruction::*;
-        let program = vec![Output];
+        let program = Program::new([Output]);
         let input: &[u8] = &[];
         let mut output: &mut [u8] = &mut [];
         let result = run(&program, input, &mut output);
@@ -354,7 +355,7 @@ mod test {
     fn test_run_hello_world() {
         use Instruction::*;
         // Hello World
-        let program = vec![
+        let program = Program::new([
             DAdd(8),
             UntilZero(vec![
                 PAdd(1),
@@ -412,7 +413,7 @@ mod test {
             PAdd(1),
             DAdd(2),
             Output,
-        ];
+        ]);
         let input: &[u8] = &[];
         let mut output = vec![];
         let result = run(&program, input, &mut output);
