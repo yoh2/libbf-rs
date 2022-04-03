@@ -51,6 +51,74 @@ where
     }
 }
 
+#[test]
+fn test_simple_def_to_tokenizer() {
+    let spec = SimpleTokenSpec {
+        ptr_inc: "♡♡",
+        ptr_dec: "aaaaa",
+        data_inc: '♠',
+        data_dec: "♢♢♢",
+        output: "♣♣♣♣",
+        input: "dddddddd".to_string(),
+        loop_head: "ccccccc",
+        loop_tail: "bbbbbb",
+    };
+    let tokenizer = spec.to_tokenizer();
+    let expected = [
+        SimpleTokenDef {
+            token: "dddddddd".to_string(),
+            token_type: TokenType::Input,
+            char_count: 8,
+        },
+        SimpleTokenDef {
+            token: "ccccccc".to_string(),
+            token_type: TokenType::LoopHead,
+            char_count: 7,
+        },
+        SimpleTokenDef {
+            token: "bbbbbb".to_string(),
+            token_type: TokenType::LoopTail,
+            char_count: 6,
+        },
+        SimpleTokenDef {
+            token: "aaaaa".to_string(),
+            token_type: TokenType::PDec,
+            char_count: 5,
+        },
+        SimpleTokenDef {
+            token: "♣♣♣♣".to_string(),
+            token_type: TokenType::Output,
+            char_count: 4,
+        },
+        SimpleTokenDef {
+            token: "♢♢♢".to_string(),
+            token_type: TokenType::DDec,
+            char_count: 3,
+        },
+        SimpleTokenDef {
+            token: "♡♡".to_string(),
+            token_type: TokenType::PInc,
+            char_count: 2,
+        },
+        SimpleTokenDef {
+            token: "♠".to_string(),
+            token_type: TokenType::DInc,
+            char_count: 1,
+        },
+    ];
+    assert_simple_def_eq(&tokenizer.token_table, &expected);
+}
+
+#[cfg(test)]
+fn assert_simple_def_eq(actual: &[SimpleTokenDef], expected: &[SimpleTokenDef]) {
+    assert_eq!(actual.len(), expected.len(), "length");
+    for (index, (a, e)) in actual.iter().zip(expected.iter()).enumerate() {
+        assert_eq!(a.token, e.token, "[{index}].token");
+        assert_eq!(a.token_type, e.token_type, "[{index}].token_type");
+        assert_eq!(a.char_count, e.char_count, "[{index}].char_count");
+    }
+}
+
 /// Token specification for `SimpleTokenizer` which allows have multiple tokens for the same token type.
 pub struct SimpleMultiTokenSpec<'a, S1, S2, S3, S4, S5, S6, S7, S8> {
     /// Tokens representing pointer increment (`>').
@@ -110,7 +178,71 @@ where
     }
 }
 
+#[test]
+fn test_multiple_simple_def_to_tokenizer() {
+    let spec = SimpleMultiTokenSpec {
+        ptr_inc: &["♡♡"],
+        ptr_dec: &["aaaaa"],
+        data_inc: &['♠'],
+        data_dec: &["♢♢♢", "??????????"],
+        output: &["♣♣♣♣"],
+        input: &["dddddddd".to_string()],
+        loop_head: &["ccccccc"],
+        loop_tail: &["bbbbbb"],
+    };
+    let tokenizer = spec.to_tokenizer();
+    let expected = [
+        SimpleTokenDef {
+            token: "??????????".to_string(),
+            token_type: TokenType::DDec,
+            char_count: 10,
+        },
+        SimpleTokenDef {
+            token: "dddddddd".to_string(),
+            token_type: TokenType::Input,
+            char_count: 8,
+        },
+        SimpleTokenDef {
+            token: "ccccccc".to_string(),
+            token_type: TokenType::LoopHead,
+            char_count: 7,
+        },
+        SimpleTokenDef {
+            token: "bbbbbb".to_string(),
+            token_type: TokenType::LoopTail,
+            char_count: 6,
+        },
+        SimpleTokenDef {
+            token: "aaaaa".to_string(),
+            token_type: TokenType::PDec,
+            char_count: 5,
+        },
+        SimpleTokenDef {
+            token: "♣♣♣♣".to_string(),
+            token_type: TokenType::Output,
+            char_count: 4,
+        },
+        SimpleTokenDef {
+            token: "♢♢♢".to_string(),
+            token_type: TokenType::DDec,
+            char_count: 3,
+        },
+        SimpleTokenDef {
+            token: "♡♡".to_string(),
+            token_type: TokenType::PInc,
+            char_count: 2,
+        },
+        SimpleTokenDef {
+            token: "♠".to_string(),
+            token_type: TokenType::DInc,
+            char_count: 1,
+        },
+    ];
+    assert_simple_def_eq(&tokenizer.token_table, &expected);
+}
+
 // Token definition
+#[derive(Debug, PartialEq, Eq)]
 struct SimpleTokenDef {
     // The token string
     token: String,
