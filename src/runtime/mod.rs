@@ -1,6 +1,6 @@
 use crate::{
     error::RuntimeError,
-    program::{Instruction, Program},
+    program::{Instruction, ProgramRef},
 };
 
 use std::io::{Read, Write};
@@ -109,7 +109,7 @@ where
     }
 
     // this method cannot call more than once on the same instance
-    fn run(&mut self, program: &Program) -> Result<(), RuntimeError> {
+    fn run(&mut self, program: ProgramRef) -> Result<(), RuntimeError> {
         for inst in program {
             match inst {
                 Instruction::PAdd(operand) => self.add_pointer(*operand)?,
@@ -130,7 +130,7 @@ where
 
 pub const DEFAULT_MEMSIZE: MemorySize = MemorySize::Fixed(30000);
 
-pub fn run<R, W>(program: &Program, input: R, output: W) -> Result<(), RuntimeError>
+pub fn run<R, W>(program: ProgramRef, input: R, output: W) -> Result<(), RuntimeError>
 where
     R: Read,
     W: Write,
@@ -139,7 +139,7 @@ where
 }
 
 pub fn run_with_memsize<R, W>(
-    program: &Program,
+    program: ProgramRef,
     input: R,
     output: W,
     memsize: MemorySize,

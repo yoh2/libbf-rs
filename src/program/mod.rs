@@ -1,6 +1,9 @@
 /// Parsed program
 pub type Program = Vec<Instruction>;
 
+/// Reference to a parsed program
+pub type ProgramRef<'a> = &'a [Instruction];
+
 /// Brainf*ck instruction
 #[derive(Debug)]
 pub enum Instruction {

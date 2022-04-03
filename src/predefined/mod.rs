@@ -1,4 +1,4 @@
-#[cfg(feature="brainfxck")]
+#[cfg(feature = "brainfxck")]
 pub mod brainfxck {
     use crate::token::simple::{SimpleTokenSpec, SimpleTokenizer};
 
@@ -49,7 +49,7 @@ pub mod brainfxck {
     }
 }
 
-#[cfg(feature="ook")]
+#[cfg(feature = "ook")]
 pub mod ook {
 
     use crate::{

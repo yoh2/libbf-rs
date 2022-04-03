@@ -10,6 +10,7 @@ license = "MIT"
 
 [features]
 default = []
+all = ["predefined"]
 predefined = ["brainfxck", "ook"]
 brainfxck = []
 ook = []
