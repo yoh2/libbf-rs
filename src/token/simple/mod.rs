@@ -51,6 +51,65 @@ where
     }
 }
 
+/// Token specification for `SimpleTokenizer` which allows have multiple tokens for the same token type.
+pub struct SimpleMultiTokenSpec<'a, S1, S2, S3, S4, S5, S6, S7, S8> {
+    /// Tokens representing pointer increment (`>').
+    pub ptr_inc: &'a [S1],
+    /// Tokens representing pointer decrement (`<').
+    pub ptr_dec: &'a [S2],
+    /// Tokens representing data increment (`+').
+    pub data_inc: &'a [S3],
+    /// Tokens representing data decrement (`-').
+    pub data_dec: &'a [S4],
+    /// Tokens representing output (`.`).
+    pub output: &'a [S5],
+    /// Tokens representing input (`,`).
+    pub input: &'a [S6],
+    /// Tokens representing loop head (`[`).
+    pub loop_head: &'a [S7],
+    /// Tokens representing loop tail (`]`).
+    pub loop_tail: &'a [S8],
+}
+
+/// A variant of `SimpleTokenSpec` where all members have the same type.
+pub type SimpleMultiTokenSpec1<'a, S> = SimpleMultiTokenSpec<'a, S, S, S, S, S, S, S, S>;
+
+impl<'a, S1, S2, S3, S4, S5, S6, S7, S8> SimpleMultiTokenSpec<'a, S1, S2, S3, S4, S5, S6, S7, S8>
+where
+    S1: ToString,
+    S2: ToString,
+    S3: ToString,
+    S4: ToString,
+    S5: ToString,
+    S6: ToString,
+    S7: ToString,
+    S8: ToString,
+{
+    pub fn to_tokenizer(&self) -> SimpleTokenizer {
+        let mut token_table = Self::to_token_defs(self.ptr_inc, TokenType::PInc)
+            .chain(Self::to_token_defs(self.ptr_dec, TokenType::PDec))
+            .chain(Self::to_token_defs(self.data_inc, TokenType::DInc))
+            .chain(Self::to_token_defs(self.data_dec, TokenType::DDec))
+            .chain(Self::to_token_defs(self.output, TokenType::Output))
+            .chain(Self::to_token_defs(self.input, TokenType::Input))
+            .chain(Self::to_token_defs(self.loop_head, TokenType::LoopHead))
+            .chain(Self::to_token_defs(self.loop_tail, TokenType::LoopTail))
+            .collect::<Vec<_>>();
+        // Sort the table by token length in descending order in order to fetch token by longest match strategy.
+        token_table.sort_by_key(|def| usize::MAX - def.char_count);
+        SimpleTokenizer { token_table }
+    }
+
+    fn to_token_defs(
+        tokens: &[impl ToString],
+        token_type: TokenType,
+    ) -> impl Iterator<Item = SimpleTokenDef> + '_ {
+        tokens
+            .iter()
+            .map(move |token| SimpleTokenDef::new(token, token_type))
+    }
+}
+
 // Token definition
 struct SimpleTokenDef {
     // The token string
