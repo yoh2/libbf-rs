@@ -51,7 +51,7 @@ where
             let inst = &self.program[index];
             match self.runtime.exec_one(inst)? {
                 internal::NextAction::Next => {
-                    if !self.program.step_index(index) && index.step_out() {
+                    if !self.program.step_index(index) && !index.step_out() {
                         self.index = None;
                     }
                 }
