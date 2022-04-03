@@ -32,6 +32,9 @@ pub enum RuntimeError {
 
     #[error("IO error: {0}")]
     IoError(#[from] io::Error),
+
+    #[error("detected EOF")]
+    Eof,
 }
 
 #[cfg(test)]

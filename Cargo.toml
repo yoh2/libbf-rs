@@ -1,12 +1,19 @@
 [package]
 name = "libbf"
-version = "0.0.2"
+version = "0.0.3"
 authors = ["yoh2 <yoh2.sdj@gmail.com>"]
 edition = "2021"
 description = "Brainfu*k and derived language interpreter library"
 license = "MIT"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[features]
+default = []
+all = ["predefined"]
+predefined = ["brainfxck", "ook"]
+brainfxck = []
+ook = []
 
 [dependencies]
 thiserror = "1.0"

@@ -20,6 +20,9 @@ pub struct SimpleTokenSpec<S1, S2, S3, S4, S5, S6, S7, S8> {
     pub loop_tail: S8,
 }
 
+/// A variant of `SimpleTokenSpec` where all members have the same type.
+pub type SimpleTokenSpec1<S> = SimpleTokenSpec<S, S, S, S, S, S, S, S>;
+
 impl<S1, S2, S3, S4, S5, S6, S7, S8> SimpleTokenSpec<S1, S2, S3, S4, S5, S6, S7, S8>
 where
     S1: ToString,
@@ -48,7 +51,198 @@ where
     }
 }
 
+#[test]
+fn test_simple_def_to_tokenizer() {
+    let spec = SimpleTokenSpec {
+        ptr_inc: "♡♡",
+        ptr_dec: "aaaaa",
+        data_inc: '♠',
+        data_dec: "♢♢♢",
+        output: "♣♣♣♣",
+        input: "dddddddd".to_string(),
+        loop_head: "ccccccc",
+        loop_tail: "bbbbbb",
+    };
+    let tokenizer = spec.to_tokenizer();
+    let expected = [
+        SimpleTokenDef {
+            token: "dddddddd".to_string(),
+            token_type: TokenType::Input,
+            char_count: 8,
+        },
+        SimpleTokenDef {
+            token: "ccccccc".to_string(),
+            token_type: TokenType::LoopHead,
+            char_count: 7,
+        },
+        SimpleTokenDef {
+            token: "bbbbbb".to_string(),
+            token_type: TokenType::LoopTail,
+            char_count: 6,
+        },
+        SimpleTokenDef {
+            token: "aaaaa".to_string(),
+            token_type: TokenType::PDec,
+            char_count: 5,
+        },
+        SimpleTokenDef {
+            token: "♣♣♣♣".to_string(),
+            token_type: TokenType::Output,
+            char_count: 4,
+        },
+        SimpleTokenDef {
+            token: "♢♢♢".to_string(),
+            token_type: TokenType::DDec,
+            char_count: 3,
+        },
+        SimpleTokenDef {
+            token: "♡♡".to_string(),
+            token_type: TokenType::PInc,
+            char_count: 2,
+        },
+        SimpleTokenDef {
+            token: "♠".to_string(),
+            token_type: TokenType::DInc,
+            char_count: 1,
+        },
+    ];
+    assert_simple_def_eq(&tokenizer.token_table, &expected);
+}
+
+#[cfg(test)]
+fn assert_simple_def_eq(actual: &[SimpleTokenDef], expected: &[SimpleTokenDef]) {
+    assert_eq!(actual.len(), expected.len(), "length");
+    for (index, (a, e)) in actual.iter().zip(expected.iter()).enumerate() {
+        assert_eq!(a.token, e.token, "[{index}].token");
+        assert_eq!(a.token_type, e.token_type, "[{index}].token_type");
+        assert_eq!(a.char_count, e.char_count, "[{index}].char_count");
+    }
+}
+
+/// Token specification for `SimpleTokenizer` which allows have multiple tokens for the same token type.
+pub struct SimpleMultiTokenSpec<'a, S1, S2, S3, S4, S5, S6, S7, S8> {
+    /// Tokens representing pointer increment (`>').
+    pub ptr_inc: &'a [S1],
+    /// Tokens representing pointer decrement (`<').
+    pub ptr_dec: &'a [S2],
+    /// Tokens representing data increment (`+').
+    pub data_inc: &'a [S3],
+    /// Tokens representing data decrement (`-').
+    pub data_dec: &'a [S4],
+    /// Tokens representing output (`.`).
+    pub output: &'a [S5],
+    /// Tokens representing input (`,`).
+    pub input: &'a [S6],
+    /// Tokens representing loop head (`[`).
+    pub loop_head: &'a [S7],
+    /// Tokens representing loop tail (`]`).
+    pub loop_tail: &'a [S8],
+}
+
+/// A variant of `SimpleTokenSpec` where all members have the same type.
+pub type SimpleMultiTokenSpec1<'a, S> = SimpleMultiTokenSpec<'a, S, S, S, S, S, S, S, S>;
+
+impl<'a, S1, S2, S3, S4, S5, S6, S7, S8> SimpleMultiTokenSpec<'a, S1, S2, S3, S4, S5, S6, S7, S8>
+where
+    S1: ToString,
+    S2: ToString,
+    S3: ToString,
+    S4: ToString,
+    S5: ToString,
+    S6: ToString,
+    S7: ToString,
+    S8: ToString,
+{
+    pub fn to_tokenizer(&self) -> SimpleTokenizer {
+        let mut token_table = Self::to_token_defs(self.ptr_inc, TokenType::PInc)
+            .chain(Self::to_token_defs(self.ptr_dec, TokenType::PDec))
+            .chain(Self::to_token_defs(self.data_inc, TokenType::DInc))
+            .chain(Self::to_token_defs(self.data_dec, TokenType::DDec))
+            .chain(Self::to_token_defs(self.output, TokenType::Output))
+            .chain(Self::to_token_defs(self.input, TokenType::Input))
+            .chain(Self::to_token_defs(self.loop_head, TokenType::LoopHead))
+            .chain(Self::to_token_defs(self.loop_tail, TokenType::LoopTail))
+            .collect::<Vec<_>>();
+        // Sort the table by token length in descending order in order to fetch token by longest match strategy.
+        token_table.sort_by_key(|def| usize::MAX - def.char_count);
+        SimpleTokenizer { token_table }
+    }
+
+    fn to_token_defs(
+        tokens: &[impl ToString],
+        token_type: TokenType,
+    ) -> impl Iterator<Item = SimpleTokenDef> + '_ {
+        tokens
+            .iter()
+            .map(move |token| SimpleTokenDef::new(token, token_type))
+    }
+}
+
+#[test]
+fn test_multiple_simple_def_to_tokenizer() {
+    let spec = SimpleMultiTokenSpec {
+        ptr_inc: &["♡♡"],
+        ptr_dec: &["aaaaa"],
+        data_inc: &['♠'],
+        data_dec: &["♢♢♢", "??????????"],
+        output: &["♣♣♣♣"],
+        input: &["dddddddd".to_string()],
+        loop_head: &["ccccccc"],
+        loop_tail: &["bbbbbb"],
+    };
+    let tokenizer = spec.to_tokenizer();
+    let expected = [
+        SimpleTokenDef {
+            token: "??????????".to_string(),
+            token_type: TokenType::DDec,
+            char_count: 10,
+        },
+        SimpleTokenDef {
+            token: "dddddddd".to_string(),
+            token_type: TokenType::Input,
+            char_count: 8,
+        },
+        SimpleTokenDef {
+            token: "ccccccc".to_string(),
+            token_type: TokenType::LoopHead,
+            char_count: 7,
+        },
+        SimpleTokenDef {
+            token: "bbbbbb".to_string(),
+            token_type: TokenType::LoopTail,
+            char_count: 6,
+        },
+        SimpleTokenDef {
+            token: "aaaaa".to_string(),
+            token_type: TokenType::PDec,
+            char_count: 5,
+        },
+        SimpleTokenDef {
+            token: "♣♣♣♣".to_string(),
+            token_type: TokenType::Output,
+            char_count: 4,
+        },
+        SimpleTokenDef {
+            token: "♢♢♢".to_string(),
+            token_type: TokenType::DDec,
+            char_count: 3,
+        },
+        SimpleTokenDef {
+            token: "♡♡".to_string(),
+            token_type: TokenType::PInc,
+            char_count: 2,
+        },
+        SimpleTokenDef {
+            token: "♠".to_string(),
+            token_type: TokenType::DInc,
+            char_count: 1,
+        },
+    ];
+    assert_simple_def_eq(&tokenizer.token_table, &expected);
+}
+
 // Token definition
+#[derive(Debug, PartialEq, Eq)]
 struct SimpleTokenDef {
     // The token string
     token: String,

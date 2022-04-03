@@ -1,16 +1,11 @@
+#[cfg(feature = "brainfxck")]
 pub mod brainfxck {
-    use crate::token::simple::{SimpleTokenSpec, SimpleTokenizer};
+    use crate::{
+        prelude::Parser,
+        token::simple::{SimpleTokenSpec1, SimpleTokenizer},
+    };
 
-    pub const TOKEN_SPEC: SimpleTokenSpec<
-        &'static str,
-        &'static str,
-        &'static str,
-        &'static str,
-        &'static str,
-        &'static str,
-        &'static str,
-        &'static str,
-    > = SimpleTokenSpec {
+    pub const TOKEN_SPEC: SimpleTokenSpec1<&str> = SimpleTokenSpec1 {
         ptr_inc: ">",
         ptr_dec: "<",
         data_inc: "+",
@@ -25,15 +20,19 @@ pub mod brainfxck {
         TOKEN_SPEC.to_tokenizer()
     }
 
+    pub fn parser() -> Parser<SimpleTokenizer> {
+        Parser::new(tokenizer())
+    }
+
     #[cfg(test)]
     mod test {
         use super::*;
-        use crate::{parser, runtime};
+        use crate::runtime;
 
         #[test]
         fn test_hello_world() {
             let source = "++++++++[>++++[>++>+++>+++>+<<<<-]>+>+>->>+[<]<-]>>.>---.+++++++..+++.>>.<-.<.+++.------.--------.>>+.>++.";
-            let program = match parser::parse_str(&tokenizer(), source) {
+            let program = match parser().parse_str(source) {
                 Ok(program) => program,
                 Err(err) => panic!("unexpected error: {err}"),
             };
@@ -48,10 +47,12 @@ pub mod brainfxck {
     }
 }
 
+#[cfg(feature = "ook")]
 pub mod ook {
 
     use crate::{
         error::ParseError,
+        prelude::Parser,
         token::{TokenInfo, TokenStream, TokenType, Tokenizer},
     };
 
@@ -71,6 +72,10 @@ pub mod ook {
         token_type: OokTokenType,
         /// The position of the token in the source.
         pos_in_chars: usize,
+    }
+
+    pub fn parser() -> Parser<OokTokenizer> {
+        Parser::new(OokTokenizer)
     }
 
     pub struct OokTokenizer;
@@ -185,7 +190,7 @@ pub mod ook {
     #[cfg(test)]
     mod test {
         use super::*;
-        use crate::{parser, runtime};
+        use crate::runtime;
 
         #[test]
         fn test_hello_world() {
@@ -210,7 +215,7 @@ pub mod ook {
                 Ook! Ook! Ook! Ook! Ook! Ook! Ook! Ook! Ook! Ook! Ook! Ook! Ook! Ook! Ook! Ook!
                 Ook! Ook. Ook. Ook? Ook. Ook? Ook. Ook. Ook! Ook.
             "##;
-            let program = match parser::parse_str(&OokTokenizer, source) {
+            let program = match parser().parse_str(source) {
                 Ok(program) => program,
                 Err(err) => panic!("unexpected error: {err}"),
             };
@@ -226,7 +231,7 @@ pub mod ook {
         #[test]
         fn test_odd_ooks() {
             let source = "Ook. Ook? Ook!";
-            if let Err(err) = parser::parse_str(&OokTokenizer, source) {
+            if let Err(err) = parser().parse_str(source) {
                 if let ParseError::MiscError(pos, msg) = err {
                     assert_eq!(pos, source.len());
                     assert_eq!(msg, "Odd number of Ook tokens");
@@ -241,7 +246,7 @@ pub mod ook {
         #[test]
         fn test_bad_ook_sequence() {
             let source = "Ook. Ook? Ook? Ook?";
-            if let Err(err) = parser::parse_str(&OokTokenizer, source) {
+            if let Err(err) = parser().parse_str(source) {
                 if let ParseError::MiscError(pos, msg) = err {
                     assert_eq!(pos, 10);
                     assert_eq!(msg, "Ook? Ook?: bad Ook sequence");

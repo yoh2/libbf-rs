@@ -36,30 +36,32 @@ where
         self.unget_buf = Some(info);
     }
 
-    fn parse(&mut self, top_level: bool) -> Result<Program, ParseError> {
-        let mut program = Program::new();
+    fn parse(&mut self, top_level: bool) -> Result<Vec<Instruction>, ParseError> {
+        let mut instructions = Vec::new();
 
         loop {
             let info = self.next_token_info()?;
             match info.token_type {
-                TokenType::PInc => self.push_padd(&mut program, 1)?,
-                TokenType::PDec => self.push_padd(&mut program, -1)?,
-                TokenType::DInc => self.push_dadd(&mut program, 1)?,
-                TokenType::DDec => self.push_dadd(&mut program, -1)?,
-                TokenType::Output => program.push(Instruction::Output),
-                TokenType::Input => program.push(Instruction::Input),
-                TokenType::LoopHead => program.push(Instruction::UntilZero(self.parse(false)?)),
+                TokenType::PInc => self.push_padd(&mut instructions, 1)?,
+                TokenType::PDec => self.push_padd(&mut instructions, -1)?,
+                TokenType::DInc => self.push_dadd(&mut instructions, 1)?,
+                TokenType::DDec => self.push_dadd(&mut instructions, -1)?,
+                TokenType::Output => instructions.push(Instruction::Output),
+                TokenType::Input => instructions.push(Instruction::Input),
+                TokenType::LoopHead => {
+                    instructions.push(Instruction::UntilZero(self.parse(false)?))
+                }
                 TokenType::LoopTail => {
                     if top_level {
                         return Err(ParseError::UnexpectedEndOfLoop(info.pos_in_chars));
                     } else {
-                        return Ok(program);
+                        return Ok(instructions);
                     }
                 }
 
                 TokenType::Eof => {
                     return if top_level {
-                        Ok(program)
+                        Ok(instructions)
                     } else {
                         Err(ParseError::UnexpectedEndOfFile(info.pos_in_chars))
                     }
@@ -70,11 +72,11 @@ where
 
     fn push_padd(
         &mut self,
-        program: &mut Program,
+        instructions: &mut Vec<Instruction>,
         initial_operand: isize,
     ) -> Result<(), ParseError> {
         self.push_xadd(
-            program,
+            instructions,
             initial_operand,
             TokenType::PInc,
             TokenType::PDec,
@@ -84,11 +86,11 @@ where
 
     fn push_dadd(
         &mut self,
-        program: &mut Program,
+        instructions: &mut Vec<Instruction>,
         initial_operand: isize,
     ) -> Result<(), ParseError> {
         self.push_xadd(
-            program,
+            instructions,
             initial_operand,
             TokenType::DInc,
             TokenType::DDec,
@@ -98,7 +100,7 @@ where
 
     fn push_xadd(
         &mut self,
-        program: &mut Program,
+        instructions: &mut Vec<Instruction>,
         initial_operand: isize,
         inc: TokenType,
         dec: TokenType,
@@ -119,25 +121,33 @@ where
         }
 
         if operand != 0 {
-            program.push(gen(operand));
+            instructions.push(gen(operand));
         }
         Ok(())
     }
 }
 
-pub fn parse(
-    tokenizer: &impl for<'x> Tokenizer<'x>,
-    mut reader: impl Read,
-) -> Result<Program, ParseOrIoError> {
-    let mut source = String::new();
-    let _ = reader.read_to_string(&mut source)?;
-    parse_str(tokenizer, &source).map_err(ParseOrIoError::ParseError)
+pub struct Parser<T> {
+    tokenizer: T,
 }
 
-pub fn parse_str(
-    tokenizer: &impl for<'x> Tokenizer<'x>,
-    source: &str,
-) -> Result<Program, ParseError> {
-    let mut context = ParseContext::new(tokenizer.token_stream(source));
-    context.parse(true)
+impl<T> Parser<T>
+where
+    for<'x> T: Tokenizer<'x>,
+{
+    pub fn new(tokenizer: T) -> Self {
+        Self { tokenizer }
+    }
+
+    pub fn parse(&self, mut reader: impl Read) -> Result<Program, ParseOrIoError> {
+        let mut source = String::new();
+        let _ = reader.read_to_string(&mut source)?;
+        let program = self.parse_str(&source)?;
+        Ok(program)
+    }
+
+    pub fn parse_str(&self, source: &str) -> Result<Program, ParseError> {
+        let mut context = ParseContext::new(self.tokenizer.token_stream(source));
+        Ok(Program::new(context.parse(true)?))
+    }
 }
