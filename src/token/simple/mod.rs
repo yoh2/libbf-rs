@@ -120,60 +120,73 @@ fn assert_simple_def_eq(actual: &[SimpleTokenDef], expected: &[SimpleTokenDef]) 
 }
 
 /// Token specification for `SimpleTokenizer` which allows have multiple tokens for the same token type.
-pub struct SimpleMultiTokenSpec<'a, S1, S2, S3, S4, S5, S6, S7, S8> {
+pub struct SimpleMultiTokenSpec<I1, I2, I3, I4, I5, I6, I7, I8> {
     /// Tokens representing pointer increment (`>').
-    pub ptr_inc: &'a [S1],
+    pub ptr_inc: I1,
     /// Tokens representing pointer decrement (`<').
-    pub ptr_dec: &'a [S2],
+    pub ptr_dec: I2,
     /// Tokens representing data increment (`+').
-    pub data_inc: &'a [S3],
+    pub data_inc: I3,
     /// Tokens representing data decrement (`-').
-    pub data_dec: &'a [S4],
+    pub data_dec: I4,
     /// Tokens representing output (`.`).
-    pub output: &'a [S5],
+    pub output: I5,
     /// Tokens representing input (`,`).
-    pub input: &'a [S6],
+    pub input: I6,
     /// Tokens representing loop head (`[`).
-    pub loop_head: &'a [S7],
+    pub loop_head: I7,
     /// Tokens representing loop tail (`]`).
-    pub loop_tail: &'a [S8],
+    pub loop_tail: I8,
 }
 
 /// A variant of `SimpleTokenSpec` where all members have the same type.
-pub type SimpleMultiTokenSpec1<'a, S> = SimpleMultiTokenSpec<'a, S, S, S, S, S, S, S, S>;
+pub type SimpleMultiTokenSpec1<I> = SimpleMultiTokenSpec<I, I, I, I, I, I, I, I>;
 
-impl<'a, S1, S2, S3, S4, S5, S6, S7, S8> SimpleMultiTokenSpec<'a, S1, S2, S3, S4, S5, S6, S7, S8>
-where
-    S1: ToString,
-    S2: ToString,
-    S3: ToString,
-    S4: ToString,
-    S5: ToString,
-    S6: ToString,
-    S7: ToString,
-    S8: ToString,
-{
-    pub fn to_tokenizer(&self) -> SimpleTokenizer {
-        let mut token_table = Self::to_token_defs(self.ptr_inc, TokenType::PInc)
-            .chain(Self::to_token_defs(self.ptr_dec, TokenType::PDec))
-            .chain(Self::to_token_defs(self.data_inc, TokenType::DInc))
-            .chain(Self::to_token_defs(self.data_dec, TokenType::DDec))
-            .chain(Self::to_token_defs(self.output, TokenType::Output))
-            .chain(Self::to_token_defs(self.input, TokenType::Input))
-            .chain(Self::to_token_defs(self.loop_head, TokenType::LoopHead))
-            .chain(Self::to_token_defs(self.loop_tail, TokenType::LoopTail))
+impl<I1, I2, I3, I4, I5, I6, I7, I8> SimpleMultiTokenSpec<I1, I2, I3, I4, I5, I6, I7, I8> {
+    pub fn to_tokenizer<'a, S1, S2, S3, S4, S5, S6, S7, S8>(&'a self) -> SimpleTokenizer
+    where
+        &'a I1: IntoIterator<Item = &'a S1>,
+        S1: ToString + 'a,
+        &'a I2: IntoIterator<Item = &'a S2>,
+        S2: ToString + 'a,
+        &'a I3: IntoIterator<Item = &'a S3>,
+        S3: ToString + 'a,
+        &'a I4: IntoIterator<Item = &'a S4>,
+        S4: ToString + 'a,
+        &'a I5: IntoIterator<Item = &'a S5>,
+        S5: ToString + 'a,
+        &'a I6: IntoIterator<Item = &'a S6>,
+        S6: ToString + 'a,
+        &'a I7: IntoIterator<Item = &'a S7>,
+        S7: ToString + 'a,
+        &'a I8: IntoIterator<Item = &'a S8>,
+        S8: ToString + 'a,
+    {
+        let mut token_table = Self::to_token_defs(&self.ptr_inc, TokenType::PInc)
+            .chain(Self::to_token_defs(&self.ptr_dec, TokenType::PDec))
+            .chain(Self::to_token_defs(&self.data_inc, TokenType::DInc))
+            .chain(Self::to_token_defs(&self.data_dec, TokenType::DDec))
+            .chain(Self::to_token_defs(&self.output, TokenType::Output))
+            .chain(Self::to_token_defs(&self.input, TokenType::Input))
+            .chain(Self::to_token_defs(&self.loop_head, TokenType::LoopHead))
+            .chain(Self::to_token_defs(&self.loop_tail, TokenType::LoopTail))
             .collect::<Vec<_>>();
         // Sort the table by token length in descending order in order to fetch token by longest match strategy.
         token_table.sort_by_key(|def| usize::MAX - def.char_count);
         SimpleTokenizer { token_table }
     }
 
-    fn to_token_defs(
-        tokens: &[impl ToString],
+    fn to_token_defs<'a, I, S>(
+        tokens: I,
         token_type: TokenType,
-    ) -> impl Iterator<Item = SimpleTokenDef> + '_ {
+    ) -> impl Iterator<Item = SimpleTokenDef> + 'a
+    where
+        I: IntoIterator<Item = &'a S>,
+        <I as IntoIterator>::IntoIter: 'a,
+        S: ToString + 'a,
+    {
         tokens
-            .iter()
+            .into_iter()
             .map(move |token| SimpleTokenDef::new(token, token_type))
     }
 }
@@ -181,14 +194,14 @@ where
 #[test]
 fn test_multiple_simple_def_to_tokenizer() {
     let spec = SimpleMultiTokenSpec {
-        ptr_inc: &["♡♡"],
-        ptr_dec: &["aaaaa"],
-        data_inc: &['♠'],
-        data_dec: &["♢♢♢", "??????????"],
-        output: &["♣♣♣♣"],
-        input: &["dddddddd".to_string()],
-        loop_head: &["ccccccc"],
-        loop_tail: &["bbbbbb"],
+        ptr_inc: ["♡♡"],
+        ptr_dec: ["aaaaa"],
+        data_inc: ['♠'],
+        data_dec: ["♢♢♢", "??????????"].to_vec(),
+        output: ["♣♣♣♣"],
+        input: ["dddddddd".to_string()],
+        loop_head: ["ccccccc"],
+        loop_tail: ["bbbbbb"],
     };
     let tokenizer = spec.to_tokenizer();
     let expected = [
