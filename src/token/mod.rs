@@ -20,15 +20,14 @@ pub enum TokenType {
     LoopHead,
     /// loop tail (']')
     LoopTail,
-    /// end of file
-    Eof,
 }
 
 /// A token information.
 pub struct TokenInfo {
-    /// The token type.
-    pub token_type: TokenType,
-    /// The position of the token in the source string.
+    /// The token type. `None` means the EOF.
+    pub token_type: Option<TokenType>,
+    /// The position of the token in the source string which is counted in Unicode scalar units.
+    /// If `token_type` is `None`, this field points to the position of the EOF.
     pub pos_in_chars: usize,
 }
 
