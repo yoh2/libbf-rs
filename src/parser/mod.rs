@@ -42,16 +42,16 @@ where
         loop {
             let info = self.next_token_info()?;
             match info.token_type {
-                TokenType::PInc => self.push_padd(&mut instructions, 1)?,
-                TokenType::PDec => self.push_padd(&mut instructions, -1)?,
-                TokenType::DInc => self.push_dadd(&mut instructions, 1)?,
-                TokenType::DDec => self.push_dadd(&mut instructions, -1)?,
-                TokenType::Output => instructions.push(Instruction::Output),
-                TokenType::Input => instructions.push(Instruction::Input),
-                TokenType::LoopHead => {
+                Some(TokenType::PInc) => self.push_padd(&mut instructions, 1)?,
+                Some(TokenType::PDec) => self.push_padd(&mut instructions, -1)?,
+                Some(TokenType::DInc) => self.push_dadd(&mut instructions, 1)?,
+                Some(TokenType::DDec) => self.push_dadd(&mut instructions, -1)?,
+                Some(TokenType::Output) => instructions.push(Instruction::Output),
+                Some(TokenType::Input) => instructions.push(Instruction::Input),
+                Some(TokenType::LoopHead) => {
                     instructions.push(Instruction::UntilZero(self.parse(false)?))
                 }
-                TokenType::LoopTail => {
+                Some(TokenType::LoopTail) => {
                     if top_level {
                         return Err(ParseError::UnexpectedEndOfLoop(info.pos_in_chars));
                     } else {
@@ -59,7 +59,7 @@ where
                     }
                 }
 
-                TokenType::Eof => {
+                None => {
                     return if top_level {
                         Ok(instructions)
                     } else {
@@ -110,11 +110,12 @@ where
 
         loop {
             let info = self.next_token_info()?;
-            if info.token_type == inc {
+            if info.token_type == Some(inc) {
                 operand += 1;
-            } else if info.token_type == dec {
+            } else if info.token_type == Some(dec) {
                 operand -= 1;
             } else {
+                // unget token other than inc or dec (including EOF.)
                 self.unget_token_info(info);
                 break;
             }

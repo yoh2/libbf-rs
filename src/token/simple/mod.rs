@@ -302,7 +302,7 @@ impl<'a> TokenStream for SimpleTokenStream<'a> {
         for (rel_pos, _) in self.source[self.pos..].char_indices() {
             if let Some(def) = find_token_at(self.source, self.pos + rel_pos, self.token_table) {
                 let info = TokenInfo {
-                    token_type: def.token_type,
+                    token_type: Some(def.token_type),
                     pos_in_chars: self.pos_in_chars + rel_pos_in_chars,
                 };
                 // next position
@@ -319,7 +319,7 @@ impl<'a> TokenStream for SimpleTokenStream<'a> {
         self.pos_in_chars += rel_pos_in_chars;
 
         Ok(TokenInfo {
-            token_type: TokenType::Eof,
+            token_type: None,
             pos_in_chars: self.pos_in_chars,
         })
     }

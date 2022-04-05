@@ -49,7 +49,6 @@ pub mod brainfxck {
 
 #[cfg(feature = "ook")]
 pub mod ook {
-
     use crate::{
         error::ParseError,
         prelude::Parser,
@@ -59,17 +58,15 @@ pub mod ook {
     #[derive(Debug, Clone, Copy)]
     enum OokTokenType {
         /// Ook.
-        OokDot,
+        Dot,
         /// Ook?
-        OokQuestion,
+        Question,
         /// Ook!
-        OokExclamation,
-        /// Eof
-        Eof,
+        Exclamation,
     }
 
     struct OokTokenInfo {
-        token_type: OokTokenType,
+        token_type: Option<OokTokenType>,
         /// The position of the token in the source.
         pos_in_chars: usize,
     }
@@ -111,16 +108,16 @@ pub mod ook {
                 let src_head = &self.source[self.pos + rel_pos..];
                 if let Some(s) = src_head.strip_prefix(COMMON_TOKEN_PART) {
                     let token_type = match s.chars().next() {
-                        Some('.') => OokTokenType::OokDot,
-                        Some('?') => OokTokenType::OokQuestion,
-                        Some('!') => OokTokenType::OokExclamation,
+                        Some('.') => OokTokenType::Dot,
+                        Some('?') => OokTokenType::Question,
+                        Some('!') => OokTokenType::Exclamation,
                         _ => {
                             rel_pos_in_chars += 1;
                             continue;
                         }
                     };
                     let info = OokTokenInfo {
-                        token_type,
+                        token_type: Some(token_type),
                         pos_in_chars: self.pos_in_chars + rel_pos_in_chars,
                     };
                     // next position
@@ -137,7 +134,7 @@ pub mod ook {
             self.pos_in_chars += rel_pos_in_chars;
 
             OokTokenInfo {
-                token_type: OokTokenType::Eof,
+                token_type: None,
                 pos_in_chars: self.pos_in_chars,
             }
         }
@@ -145,44 +142,50 @@ pub mod ook {
 
     impl<'a> TokenStream for OokTokenStream<'a> {
         fn next(&mut self) -> Result<TokenInfo, ParseError> {
-            let first_token = self.next_ook_token();
-            if let OokTokenType::Eof = first_token.token_type {
-                return Ok(TokenInfo {
-                    token_type: TokenType::Eof,
-                    pos_in_chars: first_token.pos_in_chars,
-                });
-            }
+            let (first_token_type, first_token_pos_in_chars) = {
+                let token = self.next_ook_token();
+                if let Some(token_type) = token.token_type {
+                    (token_type, token.pos_in_chars)
+                } else {
+                    return Ok(TokenInfo {
+                        token_type: None,
+                        pos_in_chars: token.pos_in_chars,
+                    });
+                }
+            };
 
-            let second_token = self.next_ook_token();
-            if let OokTokenType::Eof = second_token.token_type {
-                return Err(ParseError::MiscError(
-                    second_token.pos_in_chars,
-                    "Odd number of Ook tokens".to_string(),
-                ));
-            }
-
-            let token_type = match (first_token.token_type, second_token.token_type) {
-                (OokTokenType::OokDot, OokTokenType::OokQuestion) => TokenType::PInc,
-                (OokTokenType::OokQuestion, OokTokenType::OokDot) => TokenType::PDec,
-                (OokTokenType::OokDot, OokTokenType::OokDot) => TokenType::DInc,
-                (OokTokenType::OokExclamation, OokTokenType::OokExclamation) => TokenType::DDec,
-                (OokTokenType::OokExclamation, OokTokenType::OokDot) => TokenType::Output,
-                (OokTokenType::OokDot, OokTokenType::OokExclamation) => TokenType::Input,
-                (OokTokenType::OokExclamation, OokTokenType::OokQuestion) => TokenType::LoopHead,
-                (OokTokenType::OokQuestion, OokTokenType::OokExclamation) => TokenType::LoopTail,
-
-                (OokTokenType::OokQuestion, OokTokenType::OokQuestion) => {
+            let second_token_type = {
+                let token = self.next_ook_token();
+                if let Some(token_type) = token.token_type {
+                    token_type
+                } else {
                     return Err(ParseError::MiscError(
-                        first_token.pos_in_chars,
+                        token.pos_in_chars,
+                        "Odd number of Ook tokens".to_string(),
+                    ));
+                }
+            };
+
+            let token_type = match (first_token_type, second_token_type) {
+                (OokTokenType::Dot, OokTokenType::Question) => TokenType::PInc,
+                (OokTokenType::Question, OokTokenType::Dot) => TokenType::PDec,
+                (OokTokenType::Dot, OokTokenType::Dot) => TokenType::DInc,
+                (OokTokenType::Exclamation, OokTokenType::Exclamation) => TokenType::DDec,
+                (OokTokenType::Exclamation, OokTokenType::Dot) => TokenType::Output,
+                (OokTokenType::Dot, OokTokenType::Exclamation) => TokenType::Input,
+                (OokTokenType::Exclamation, OokTokenType::Question) => TokenType::LoopHead,
+                (OokTokenType::Question, OokTokenType::Exclamation) => TokenType::LoopTail,
+                (OokTokenType::Question, OokTokenType::Question) => {
+                    return Err(ParseError::MiscError(
+                        first_token_pos_in_chars,
                         "Ook? Ook?: bad Ook sequence".to_string(),
                     ))
                 }
-                _ => unreachable!(),
             };
 
             Ok(TokenInfo {
-                token_type,
-                pos_in_chars: first_token.pos_in_chars,
+                token_type: Some(token_type),
+                pos_in_chars: first_token_pos_in_chars,
             })
         }
     }
