@@ -20,7 +20,7 @@ where
         Self { program, runtime }
     }
 
-    pub fn run(&mut self) -> Result<(), RuntimeError> {
+    pub fn run(mut self) -> Result<(), RuntimeError> {
         self.run_internal(self.program.instructions())
     }
 
