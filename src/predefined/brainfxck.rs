@@ -3,15 +3,15 @@ use crate::{
     token::simple::{SimpleTokenSpec1, SimpleTokenizer},
 };
 
-pub const TOKEN_SPEC: SimpleTokenSpec1<&str> = SimpleTokenSpec1 {
-    ptr_inc: ">",
-    ptr_dec: "<",
-    data_inc: "+",
-    data_dec: "-",
-    output: ".",
-    input: ",",
-    loop_head: "[",
-    loop_tail: "]",
+pub const TOKEN_SPEC: SimpleTokenSpec1<char> = SimpleTokenSpec1 {
+    ptr_inc: '>',
+    ptr_dec: '<',
+    data_inc: '+',
+    data_dec: '-',
+    output: '.',
+    input: ',',
+    loop_head: '[',
+    loop_tail: ']',
 };
 
 pub fn tokenizer() -> SimpleTokenizer {
