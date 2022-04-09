@@ -1,10 +1,13 @@
+//! Parsed program of Brainf*ck-like language and related definitions.
 use std::ops::Index;
 
-/// Parsed program
+/// A parsed program of Brainf*ck-link language.
+///
+/// Each instruction can be acceseed by [`ProgramIndex`].
 #[derive(Debug)]
 pub struct Program(Vec<Instruction>);
 
-/// Brainf*ck instruction
+/// An intermediate instruction of Brainf*ck-like language.
 #[derive(Debug, PartialEq, Eq)]
 pub enum Instruction {
     /// Unified pointer increments/decrements
@@ -16,13 +19,14 @@ pub enum Instruction {
     /// Write one byte at the current pointer
     Output,
 
-    /// Read one byte  and store it at the current pointer
+    /// Read one byte and store it at the current pointer
     Input,
 
     /// loop until the value at the current pointer is non-zero
     UntilZero(Vec<Instruction>),
 }
 
+/// An itdex for [`Program`]
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ProgramIndex(Vec<usize>);
 
@@ -47,14 +51,19 @@ impl ProgramIndex {
 }
 
 impl Program {
+    /// Create a new program from an [`Instruction`] vector.
     pub fn new(instructions: impl Into<Vec<Instruction>>) -> Self {
         Self(instructions.into())
     }
 
+    /// Get the instructions of the program.
     pub fn instructions(&self) -> &[Instruction] {
         &self.0
     }
 
+    /// Get an indef which points the first instruction of the program.
+    ///
+    /// If instructins are empty, returns `None`.
     pub fn first_index(&self) -> Option<ProgramIndex> {
         if self.0.is_empty() {
             None
@@ -63,6 +72,15 @@ impl Program {
         }
     }
 
+    /// Step `index` to the next instruction.
+    ///
+    /// If the index already points to the last instruction of the program or
+    /// the last instruction of the sub-instructions (in [`Instruction::UntilZero`] instruction),
+    /// the index is not changed and this function returns `false`.
+    /// Otherwise, the index is changed to point to the next instruction and
+    /// this function returns `true`.
+    ///
+    /// This function does not step into sub-instructions of [`Instruction::UntilZero`] instruction.
     pub fn step_index(&self, index: &mut ProgramIndex) -> bool {
         Self::next_index_internal(self.instructions(), &mut index.0)
     }
