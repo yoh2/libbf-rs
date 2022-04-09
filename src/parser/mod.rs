@@ -1,3 +1,5 @@
+//! This module provides a parser for the program.
+//!
 use std::io::Read;
 
 use crate::{
@@ -6,6 +8,9 @@ use crate::{
     token::{TokenInfo, TokenStream, TokenType, Tokenizer},
 };
 
+// A context for parsing.
+//
+// This struct holds a token stream and token unget buffer.
 struct ParseContext<T> {
     token_stream: T,
 
@@ -37,6 +42,35 @@ where
     }
 }
 
+/// A parser for the program.
+///
+/// `Parser` parses program tokens which are provided by [`Tokenizer`] and generates [`Program`]
+///
+/// # Examples
+///
+/// ```
+/// use libbf::{parser::Parser, program::Instruction::*, token::simple::SimpleTokenSpec};
+///
+/// // Define basic Brainf*ck tokenizer.
+/// // (note: feature flag `brainfxck` or `predefined` provides `predefined::brainfxck::tokenizer()`
+/// //  which can be used to obtain Brainf*ck tokenizer instead of manually specifying like below)
+/// let tokenizer = SimpleTokenSpec {
+///     ptr_inc: '>',
+///     ptr_dec: '<',
+///     data_inc: '+',
+///     data_dec: '-',
+///     output: '.',
+///     input: ',',
+///     loop_head: '[',
+///     loop_tail: ']',
+/// }.to_tokenizer();
+/// // Create a parser with Brainf*ck tokenizer.
+/// let parser = Parser::new(tokenizer);
+/// // Parse Brainf*ck program.
+/// let program = parser.parse_str(",[.,]").unwrap();
+///
+/// assert_eq!(program.instructions(), [Input, UntilZero(vec![Output, Input])]);
+/// ```
 pub struct Parser<T> {
     tokenizer: T,
 }
@@ -45,10 +79,21 @@ impl<T> Parser<T>
 where
     for<'x> T: Tokenizer<'x>,
 {
+    /// Creates a new parser.
+    ///
+    /// # Arguments
+    ///
+    ///  - `tokenizer`: A tokenizer which provides tokens.
     pub fn new(tokenizer: T) -> Self {
         Self { tokenizer }
     }
 
+    /// Parses a program from a [`Read`] object.
+    ///
+    /// # Errors
+    ///
+    ///  - [`ParseOrIoError::IoError'](enum.ParseOrIoError.html#variant.IoError) aaa
+    ///  - [`ParseOrIoError'] bbb
     pub fn parse(&self, mut reader: impl Read) -> Result<Program, ParseOrIoError> {
         let mut source = String::new();
         let _ = reader.read_to_string(&mut source)?;
@@ -56,6 +101,15 @@ where
         Ok(program)
     }
 
+    /// Parses a program from a string.
+    ///
+    /// # Arguments
+    ///
+    ///  - `source`: A program source string.
+    ///
+    /// # Returns
+    ///
+    /// A program or a parse error.
     pub fn parse_str(&self, source: &str) -> Result<Program, ParseError> {
         let mut context = ParseContext::new(self.tokenizer.token_stream(source));
         Ok(Program::new(Self::parse_internal(&mut context, true)?))
