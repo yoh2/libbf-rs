@@ -11,7 +11,8 @@ keyword = ["brainfuck"]
 repository = "https://github.com/yoh2/libbf-rs"
 
 [package.metadata.docs.rs]
-rustc-args = ["--cfg", "docsrs"]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
 
 [features]
 default = []
