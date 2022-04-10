@@ -136,7 +136,7 @@ where
         Ok(NextAction::Next)
     }
 
-    // the following methods are for Brainf*ck program debugging.
+    // the following methods are for Brainfuck program debugging.
 
     /// Get the pointer of the runtime.
     pub fn get_pointer(&self) -> isize {

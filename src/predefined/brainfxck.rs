@@ -1,10 +1,10 @@
-///! Predefined Brainf*ck implementations.
+///! Predefined Brainfuck implementations.
 use crate::{
     prelude::Parser,
     token::simple::{SimpleTokenSpec1, SimpleTokenizer},
 };
 
-/// A token specification for Brainf*ck.
+/// A token specification for Brainfuck.
 pub const TOKEN_SPEC: SimpleTokenSpec1<char> = SimpleTokenSpec1 {
     ptr_inc: '>',
     ptr_dec: '<',
@@ -16,14 +16,14 @@ pub const TOKEN_SPEC: SimpleTokenSpec1<char> = SimpleTokenSpec1 {
     loop_tail: ']',
 };
 
-/// Create a tokenizer for Brainf*ck.
+/// Create a tokenizer for Brainfuck.
 ///
 /// This is equivalent to call of `TOKEN_SPEC.to_tokenizer()`
 pub fn tokenizer() -> SimpleTokenizer {
     TOKEN_SPEC.to_tokenizer()
 }
 
-/// Create a parser for Brainf*ck.
+/// Create a parser for Brainfuck.
 ///
 /// This is equivalent to call of `Parser::new(tokenizer())`
 pub fn parser() -> Parser<SimpleTokenizer> {

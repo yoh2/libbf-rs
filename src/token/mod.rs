@@ -6,21 +6,21 @@ pub mod simple;
 /// A token type.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TokenType {
-    /// pointer increment (Brainf*ck: '>')
+    /// pointer increment (Brainfuck: '>')
     PInc,
-    /// pointer decrement (Brainf*ck: '<)
+    /// pointer decrement (Brainfuck: '<)
     PDec,
-    /// data increment (Brainf*ck: '+')
+    /// data increment (Brainfuck: '+')
     DInc,
-    /// data decrement (Brainf*ck: '-')
+    /// data decrement (Brainfuck: '-')
     DDec,
-    /// output (Brainf*ck: '.')
+    /// output (Brainfuck: '.')
     Output,
-    /// input (Brainf*ck: ',')
+    /// input (Brainfuck: ',')
     Input,
-    /// loop head (Brainf*ck: '[')
+    /// loop head (Brainfuck: '[')
     LoopHead,
-    /// loop tail (Brainf*ck: ']')
+    /// loop tail (Brainfuck: ']')
     LoopTail,
 }
 

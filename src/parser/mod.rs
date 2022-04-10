@@ -51,9 +51,9 @@ where
 /// ```
 /// use libbf::{parser::Parser, program::Instruction::*, token::simple::SimpleTokenSpec};
 ///
-/// // Define basic Brainf*ck tokenizer.
+/// // Define basic Brainfuck tokenizer.
 /// // (note: feature flag `brainfxck` or `predefined` provides `predefined::brainfxck::tokenizer()`
-/// //  which can be used to obtain Brainf*ck tokenizer instead of manually specifying like below)
+/// //  which can be used to obtain Brainfuck tokenizer instead of manually specifying like below)
 /// let tokenizer = SimpleTokenSpec {
 ///     ptr_inc: '>',
 ///     ptr_dec: '<',
@@ -64,9 +64,9 @@ where
 ///     loop_head: '[',
 ///     loop_tail: ']',
 /// }.to_tokenizer();
-/// // Create a parser with Brainf*ck tokenizer.
+/// // Create a parser with Brainfuck tokenizer.
 /// let parser = Parser::new(tokenizer);
-/// // Parse Brainf*ck program.
+/// // Parse Brainfuck program.
 /// let program = parser.parse_str(",[.,]").unwrap();
 ///
 /// assert_eq!(program.instructions(), [Input, UntilZero(vec![Output, Input])]);
