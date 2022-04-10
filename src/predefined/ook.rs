@@ -1,3 +1,4 @@
+//! Predefined Ook! implementations.
 use crate::{
     error::ParseError,
     prelude::Parser,
@@ -20,10 +21,12 @@ struct OokTokenInfo {
     pos_in_chars: usize,
 }
 
+/// Create a parser for Ook!
 pub fn parser() -> Parser<OokTokenizer> {
     Parser::new(OokTokenizer)
 }
 
+/// A tokenizer for Ook!
 pub struct OokTokenizer;
 
 impl<'a> Tokenizer<'a> for OokTokenizer {
@@ -34,6 +37,7 @@ impl<'a> Tokenizer<'a> for OokTokenizer {
     }
 }
 
+/// A token stream for Ook!
 pub struct OokTokenStream<'a> {
     source: &'a str,
     pos: usize,

@@ -1,3 +1,4 @@
+//! Predefined Brainf*ck-like implementations.
 #[cfg(feature = "brainfxck")]
 pub mod brainfxck;
 
