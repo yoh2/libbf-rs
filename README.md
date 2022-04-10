@@ -9,15 +9,15 @@ and can run parsed program.
 
 ### Use predefined Brainfuck interpreter
 
-`brainfuck' feature flag is needed to compile this example.
+`bf' feature flag is needed to compile this example.
 
 ```rust
-use libbf::{predefined::brainfuck, runtime};
+use libbf::{predefined::bf, runtime};
 use std::io;
 
 fn main() {
     let source = "++++++++[>++++[>++>+++>+++>+<<<<-]>+>+>->>+[<]<-]>>.>---.+++++++..+++.>>.<-.<.+++.------.--------.>>+.>++.";
-    let program = brainfuck::parser()
+    let program = bf::parser()
         .parse_str(source)
         .expect("Failed to parse");
     runtime::run(&program, io::stdin(), io::stdout()).expect("Failed to run");
@@ -57,5 +57,5 @@ fn main() {
 
  - `all` - all features
  - `predefined` - predefined parsers below
- - `braninfuck` - predefined brainfuck parser
+ - `bf` - predefined Brainfuck parser
  - `ook` - predefined Ook! parser
