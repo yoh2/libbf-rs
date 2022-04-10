@@ -33,6 +33,8 @@
 //! assert!(result.is_ok());
 //! assert_eq!(output, b"Hello World!\n");
 //! ```
+#![cfg_attr(docsrs, feature(doc_cfg))]
+
 pub mod error;
 pub mod parser;
 #[cfg(any(feature = "bf", feature = "ook"))]
