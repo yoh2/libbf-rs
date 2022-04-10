@@ -1,4 +1,6 @@
-///! Predefined Brainfuck implementations.
+//! Predefined Brainfuck implementations.
+//!
+//! This module is enabled when feature `bf` is enabled.
 use crate::{
     prelude::Parser,
     token::simple::{SimpleTokenSpec1, SimpleTokenizer},

@@ -1,4 +1,6 @@
 //! Predefined Ook! implementations.
+//!
+//! This module is enabled when feature `ook` is enabled.
 use crate::{
     error::ParseError,
     prelude::Parser,

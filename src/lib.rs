@@ -46,8 +46,10 @@ pub mod prelude {
     pub use crate::error::*;
     pub use crate::parser::*;
     #[cfg(feature = "bf")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "bf")))]
     pub use crate::predefined::bf;
     #[cfg(feature = "ook")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "ook")))]
     pub use crate::predefined::ook;
     pub use crate::program::*;
     // exclude functions in runtime::*

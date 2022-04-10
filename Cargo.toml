@@ -10,6 +10,9 @@ readme = "README.md"
 keyword = ["brainfuck"]
 repository = "https://github.com/yoh2/libbf-rs"
 
+[package.metadata.docs.rs]
+rustc-args = ["--cfg", "docsrs"]
+
 [features]
 default = []
 all = ["predefined"]
