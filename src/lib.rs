@@ -35,7 +35,7 @@
 //! ```
 pub mod error;
 pub mod parser;
-#[cfg(any(feature = "brainfxck", feature = "ook"))]
+#[cfg(any(feature = "bf", feature = "ook"))]
 pub mod predefined;
 pub mod program;
 pub mod runtime;
@@ -45,8 +45,8 @@ pub mod token;
 pub mod prelude {
     pub use crate::error::*;
     pub use crate::parser::*;
-    #[cfg(feature = "brainfxck")]
-    pub use crate::predefined::brainfxck;
+    #[cfg(feature = "bf")]
+    pub use crate::predefined::bf;
     #[cfg(feature = "ook")]
     pub use crate::predefined::ook;
     pub use crate::program::*;

@@ -1,6 +1,6 @@
 //! Predefined Brainfuck-like implementations.
-#[cfg(feature = "brainfxck")]
-pub mod brainfxck;
+#[cfg(feature = "bf")]
+pub mod bf;
 
 #[cfg(feature = "ook")]
 pub mod ook;

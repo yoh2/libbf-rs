@@ -52,7 +52,7 @@ where
 /// use libbf::{parser::Parser, program::Instruction::*, token::simple::SimpleTokenSpec};
 ///
 /// // Define basic Brainfuck tokenizer.
-/// // (note: feature flag `brainfxck` or `predefined` provides `predefined::brainfxck::tokenizer()`
+/// // (note: feature flag `bf` or `predefined` provides `predefined::bf::tokenizer()`
 /// //  which can be used to obtain Brainfuck tokenizer instead of manually specifying like below)
 /// let tokenizer = SimpleTokenSpec {
 ///     ptr_inc: '>',
