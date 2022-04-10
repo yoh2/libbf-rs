@@ -1,30 +1,30 @@
 # libbf
 
-Brainf*ck-like language library.
+Brainfuck-like language library.
 
-This library can define a variant of Brainf*ck-like language parser
+This library can define a variant of Brainfuck-like language parser
 and can run parsed program.
 
 ## Examples
 
-### Use predefined Brainf*ck interpreter
+### Use predefined Brainfuck interpreter
 
-`brainfxck' feature flag is needed to compile this example.
+`brainfuck' feature flag is needed to compile this example.
 
 ```rust
-use libbf::{predefined::brainfxck, runtime};
+use libbf::{predefined::brainfuck, runtime};
 use std::io;
 
 fn main() {
     let source = "++++++++[>++++[>++>+++>+++>+<<<<-]>+>+>->>+[<]<-]>>.>---.+++++++..+++.>>.<-.<.+++.------.--------.>>+.>++.";
-    let program = brainfxck::parser()
+    let program = brainfuck::parser()
         .parse_str(source)
         .expect("Failed to parse");
     runtime::run(&program, io::stdin(), io::stdout()).expect("Failed to run");
 }
 ```
 
-### Define Brainf*ck interpreter
+### Define Brainfuck interpreter
 
 ```rust
 use libbf::{parser::Parser, runtime, token::simple::SimpleTokenSpec};
@@ -57,5 +57,5 @@ fn main() {
 
  - `all` - all features
  - `predefined` - predefined parsers below
- - `braninfxck` - predefined brainf*ck parser
+ - `braninfuck` - predefined brainfuck parser
  - `ook` - predefined Ook! parser

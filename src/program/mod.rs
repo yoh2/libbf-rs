@@ -1,13 +1,13 @@
-//! Parsed program of Brainf*ck-like language and related definitions.
+//! Parsed program of Brainfuck-like language and related definitions.
 use std::ops::Index;
 
-/// A parsed program of Brainf*ck-link language.
+/// A parsed program of Brainfuck-link language.
 ///
 /// Each instruction can be acceseed by [`ProgramIndex`].
 #[derive(Debug)]
 pub struct Program(Vec<Instruction>);
 
-/// An intermediate instruction of Brainf*ck-like language.
+/// An intermediate instruction of Brainfuck-like language.
 #[derive(Debug, PartialEq, Eq)]
 pub enum Instruction {
     /// Unified pointer increments/decrements

@@ -1,6 +1,6 @@
-//! Brainf*ck-like language library.
+//! Brainfuck-like language library.
 //!
-//! This library can define a variant of Brainf*ck-like language parser
+//! This library can define a variant of Brainfuck-like language parser
 //! and can run parsed program.
 //!
 //! # Examples
