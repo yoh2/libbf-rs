@@ -1,3 +1,4 @@
+//! Program runtime.
 mod internal;
 mod runner;
 mod step_runner;
@@ -9,10 +10,10 @@ use std::io::{Read, Write};
 pub use self::runner::Runner;
 pub use self::step_runner::StepRunner;
 
-/// Memory size
+/// A runtime memory size.
 #[derive(Debug, Clone, Copy)]
 pub enum MemorySize {
-    /// Fixed size [0..usize). Access to memory out of bounds will cause runtime error.
+    /// Fixed size (range: [0, self.0)). Access to memory out of bounds will cause runtime error.
     Fixed(usize),
     /// Inifinite to right (positive) direction. Access to negative address will cause runtime error.
     RightInfinite,
@@ -20,8 +21,12 @@ pub enum MemorySize {
     BothInfinite,
 }
 
+/// Default memory size.
 pub const DEFAULT_MEMSIZE: MemorySize = MemorySize::Fixed(30000);
 
+/// Run a program with the given input and output.
+///
+/// It is equivalent to `Runner::new(input, output).run()`.
 pub fn run<R, W>(program: &Program, input: R, output: W) -> Result<(), RuntimeError>
 where
     R: Read,
@@ -30,6 +35,9 @@ where
     Runner::new(program, input, output).run()
 }
 
+/// Run a program with the given input, output and memory size.
+///
+/// It is equivalent to `Runner::with_memsize(input, output, memsize).run()`.
 pub fn run_with_memsize<R, W>(
     program: &Program,
     input: R,
