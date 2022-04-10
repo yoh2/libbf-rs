@@ -108,7 +108,7 @@ mod test {
                 panic!("unexpected error: {e}");
             }
         } else {
-            assert!(false, "unexpectedly succeeded");
+            panic!("unexpectedly succeeded");
         }
     }
 
@@ -126,7 +126,7 @@ mod test {
                 panic!("unexpected error: {e}");
             }
         } else {
-            assert!(false, "unexpectedly succeeded");
+            panic!("unexpectedly succeeded");
         }
     }
 
@@ -156,7 +156,7 @@ mod test {
                 panic!("unexpected error: {e}");
             }
         } else {
-            assert!(false, "unexpectedly succeeded");
+            panic!("unexpectedly succeeded");
         }
     }
 
@@ -206,7 +206,7 @@ mod test {
                 panic!("unexpected error: {e}");
             }
         } else {
-            assert!(false, "unexpectedly succeeded");
+            panic!("unexpectedly succeeded");
         }
     }
 
@@ -224,7 +224,7 @@ mod test {
                 panic!("unexpected error: {e}");
             }
         } else {
-            assert!(false, "unexpectedly succeeded");
+            panic!("unexpectedly succeeded");
         }
     }
 
@@ -242,7 +242,7 @@ mod test {
                 panic!("unexpected error: {e}");
             }
         } else {
-            assert!(false, "unexpectedly succeeded");
+            panic!("unexpectedly succeeded");
         }
     }
 

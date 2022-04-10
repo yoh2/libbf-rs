@@ -195,7 +195,7 @@ mod test {
                 panic!("unexpected error: {err}");
             }
         } else {
-            assert!(false, "unexpectedly succeeded");
+            panic!("unexpectedly succeeded");
         }
     }
 
@@ -210,7 +210,7 @@ mod test {
                 panic!("unexpected error: {err}");
             }
         } else {
-            assert!(false, "unexpectedly succeeded");
+            panic!("unexpectedly succeeded");
         }
     }
 }
