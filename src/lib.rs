@@ -6,6 +6,7 @@ pub mod program;
 pub mod runtime;
 pub mod token;
 
+/// `use libbf::prelude::*` is easy way to use this library;
 pub mod prelude {
     pub use crate::error::*;
     pub use crate::parser::*;
@@ -14,7 +15,7 @@ pub mod prelude {
     #[cfg(feature = "ook")]
     pub use crate::predefined::ook;
     pub use crate::program::*;
-    // exclude functions.
+    // exclude functions in runtime::*
     pub use crate::runtime::{self, MemorySize, Runner, StepRunner, DEFAULT_MEMSIZE};
     pub use crate::token::simple::*;
     pub use crate::token::*;
