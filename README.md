@@ -9,7 +9,7 @@ and can run parsed program.
 
 ### Use predefined Brainfuck interpreter
 
-`bf' feature flag is needed to compile this example.
+`bf` feature flag is needed to compile this example.
 
 ```rust
 use libbf::{predefined::bf, runtime};
