@@ -1,6 +1,7 @@
 //! Token related definitions.
 use crate::error::ParseError;
 
+pub mod regex;
 pub mod simple;
 
 /// A token type.
