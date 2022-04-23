@@ -5,6 +5,7 @@
 //! ```
 //! use libbf::{
 //!     token::{
+//!         Token,
 //!         TokenType,
 //!         Tokenizer,
 //!         TokenStream,
@@ -28,11 +29,35 @@
 //!
 //! let mut stream = tokenizer.token_stream(">(ignored here)+");
 //!
-//! assert_eq!(stream.next().unwrap(), TokenInfo { token_type: Some(TokenType::PInc), pos_in_chars: 0 });
-//! assert_eq!(stream.next().unwrap(), TokenInfo { token_type: Some(TokenType::DInc), pos_in_chars: 15 });
-//! assert_eq!(stream.next().unwrap(), TokenInfo { token_type: None, pos_in_chars: 16 });
+//! assert_eq!(
+//!     stream.next().unwrap(),
+//!     TokenInfo {
+//!         token: Some(Token {
+//!             token_type: TokenType::PInc,
+//!             token_str: ">",
+//!         }),
+//!         pos_in_chars: 0,
+//!     },
+//! );
+//! assert_eq!(
+//!     stream.next().unwrap(),
+//!     TokenInfo {
+//!         token: Some(Token {
+//!             token_type: TokenType::DInc,
+//!             token_str: "+",
+//!         }),
+//!         pos_in_chars: 15,
+//!     },
+//! );
+//! assert_eq!(
+//!     stream.next().unwrap(),
+//!     TokenInfo {
+//!         token: None,
+//!         pos_in_chars: 16,
+//!     },
+//! );
 //! ```
-use super::{TokenInfo, TokenStream, TokenType, Tokenizer};
+use super::{Token, TokenInfo, TokenStream, TokenType, Tokenizer};
 
 /// A token specification for [`SimpleTokenizer`].
 pub struct SimpleTokenSpec<S1, S2, S3, S4, S5, S6, S7, S8> {
@@ -330,19 +355,23 @@ impl<'a> SimpleTokenStream<'a> {
     }
 }
 
-impl<'a> TokenStream for SimpleTokenStream<'a> {
-    fn next(&mut self) -> Result<TokenInfo, crate::error::ParseError> {
+impl<'a> TokenStream<'a> for SimpleTokenStream<'a> {
+    fn next(&mut self) -> Result<TokenInfo<'a>, crate::error::ParseError> {
         // TODO: This loop is too dumb. It should use more efficient algorithm.
 
         let mut rel_pos_in_chars = 0;
         for (rel_pos, _) in self.source[self.pos..].char_indices() {
-            if let Some(def) = find_token_at(self.source, self.pos + rel_pos, self.token_table) {
+            let pos = self.pos + rel_pos;
+            if let Some(def) = find_token_at(self.source, pos, self.token_table) {
                 let info = TokenInfo {
-                    token_type: Some(def.token_type),
+                    token: Some(Token {
+                        token_type: def.token_type,
+                        token_str: &self.source[pos..pos + def.token.len()],
+                    }),
                     pos_in_chars: self.pos_in_chars + rel_pos_in_chars,
                 };
                 // next position
-                self.pos += rel_pos + def.token.len();
+                self.pos = pos + def.token.len();
                 self.pos_in_chars += rel_pos_in_chars + def.char_count;
                 return Ok(info);
             }
@@ -355,7 +384,7 @@ impl<'a> TokenStream for SimpleTokenStream<'a> {
         self.pos_in_chars += rel_pos_in_chars;
 
         Ok(TokenInfo {
-            token_type: None,
+            token: None,
             pos_in_chars: self.pos_in_chars,
         })
     }
@@ -370,4 +399,56 @@ fn find_token_at<'a>(
     token_table
         .iter()
         .find(|def| src_head.starts_with(&def.token))
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_token_stream() {
+        // each token is fullwidth (multi-byte) character.
+        let spec = SimpleTokenSpec {
+            ptr_inc: '＞',
+            ptr_dec: '＜',
+            data_inc: '＋',
+            data_dec: '−',
+            output: '．',
+            input: '，',
+            loop_head: '［',
+            loop_tail: '］',
+        };
+        let tokenizer = spec.to_tokenizer();
+        // byte 0 (char 0): PDec
+        // byte 14 (char 6): PInc
+        // byte 26 (char 10): EOF
+        let mut stream = tokenizer.token_stream("＜-いろは+＞ＸＹＺ");
+        assert_eq!(
+            stream.next().unwrap(),
+            TokenInfo {
+                token: Some(Token {
+                    token_type: TokenType::PDec,
+                    token_str: "＜",
+                }),
+                pos_in_chars: 0,
+            }
+        );
+        assert_eq!(
+            stream.next().unwrap(),
+            TokenInfo {
+                token: Some(Token {
+                    token_type: TokenType::PInc,
+                    token_str: "＞",
+                }),
+                pos_in_chars: 6,
+            }
+        );
+        assert_eq!(
+            stream.next().unwrap(),
+            TokenInfo {
+                token: None,
+                pos_in_chars: 10,
+            }
+        );
+    }
 }
