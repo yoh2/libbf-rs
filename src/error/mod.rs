@@ -12,29 +12,29 @@ pub enum ParseError {
     /// An error returned when a parser unexpectedly reached to "end of file".
     ///
     /// This error typically occurred when a loop was not closed.
-    #[error("{0}: Unexpected end-of-file")]
-    UnexpectedEndOfFile(
+    #[error("{pos_in_chars}: Unexpected end-of-file")]
+    UnexpectedEndOfFile {
         /// The position where the error occurred.
-        usize,
-    ),
+        pos_in_chars: usize,
+    },
 
     /// An error returned when a parser unexpectedly reached to an end-of-loop.
     ///
     /// This error occurred when end-of-loop token was appeared outside a loop.
-    #[error("{0}: Unexpected end-of-loop")]
-    UnexpectedEndOfLoop(
+    #[error("{pos_in_chars}: Unexpected end-of-loop")]
+    UnexpectedEndOfLoop {
         /// The position where the error occurred.
-        usize,
-    ),
+        pos_in_chars: usize,
+    },
 
     /// A miscellaneous error.
-    #[error("{0}: syntax error: {1}")]
-    MiscError(
+    #[error("{pos_in_chars}: syntax error: {message}")]
+    MiscError {
         /// The position where the error occurred.
-        usize,
+        pos_in_chars: usize,
         /// Error details.
-        String,
-    ),
+        message: String,
+    },
 }
 
 /// A parse Error or IO Error.
@@ -56,11 +56,11 @@ pub enum RuntimeError {
     ///
     /// An "access" occurs when a deta increment/decrement, input or output instruction is performed
     /// and does not occur when the data pointer just points out of range.
-    #[error("out of memory bounds [{0}]")]
-    OutOfMemoryBounds(
+    #[error("out of memory bounds [{address}]")]
+    OutOfMemoryBounds {
         /// The address where the instruction tried to access.
-        isize,
-    ),
+        address: isize,
+    },
 
     /// An IO error.
     ///
@@ -80,7 +80,7 @@ mod tests {
     fn runtime_error_string() {
         assert_eq!(
             "out of memory bounds [123]",
-            RuntimeError::OutOfMemoryBounds(123).to_string()
+            RuntimeError::OutOfMemoryBounds { address: 123 }.to_string()
         );
     }
 }

@@ -136,7 +136,9 @@ where
                 )),
                 Some(TokenType::LoopTail) => {
                     if top_level {
-                        return Err(ParseError::UnexpectedEndOfLoop(info.pos_in_chars));
+                        return Err(ParseError::UnexpectedEndOfLoop {
+                            pos_in_chars: info.pos_in_chars,
+                        });
                     } else {
                         return Ok(instructions);
                     }
@@ -146,7 +148,9 @@ where
                     return if top_level {
                         Ok(instructions)
                     } else {
-                        Err(ParseError::UnexpectedEndOfFile(info.pos_in_chars))
+                        Err(ParseError::UnexpectedEndOfFile {
+                            pos_in_chars: info.pos_in_chars,
+                        })
                     }
                 }
             }

@@ -117,10 +117,10 @@ impl<'a> TokenStream<'a> for OokTokenStream<'a> {
             if let Some(token_type) = token.token_type {
                 (token_type, token.pos)
             } else {
-                return Err(ParseError::MiscError(
-                    token.pos_in_chars,
-                    "Odd number of Ook tokens".to_string(),
-                ));
+                return Err(ParseError::MiscError {
+                    pos_in_chars: token.pos_in_chars,
+                    message: "Odd number of Ook tokens".to_string(),
+                });
             }
         };
 
@@ -134,10 +134,10 @@ impl<'a> TokenStream<'a> for OokTokenStream<'a> {
             (OokTokenType::Exclamation, OokTokenType::Question) => TokenType::LoopHead,
             (OokTokenType::Question, OokTokenType::Exclamation) => TokenType::LoopTail,
             (OokTokenType::Question, OokTokenType::Question) => {
-                return Err(ParseError::MiscError(
-                    first_token_pos_in_chars,
-                    "Ook? Ook?: bad Ook sequence".to_string(),
-                ))
+                return Err(ParseError::MiscError {
+                    pos_in_chars: first_token_pos_in_chars,
+                    message: "Ook? Ook?: bad Ook sequence".to_string(),
+                })
             }
         };
 
@@ -221,9 +221,13 @@ mod test {
     fn test_odd_ooks() {
         let source = "Ook. Ook? Ook!";
         if let Err(err) = parser().parse_str(source) {
-            if let ParseError::MiscError(pos, msg) = err {
-                assert_eq!(pos, source.len());
-                assert_eq!(msg, "Odd number of Ook tokens");
+            if let ParseError::MiscError {
+                pos_in_chars,
+                message,
+            } = err
+            {
+                assert_eq!(pos_in_chars, source.len());
+                assert_eq!(message, "Odd number of Ook tokens");
             } else {
                 panic!("unexpected error: {err}");
             }
@@ -236,9 +240,13 @@ mod test {
     fn test_bad_ook_sequence() {
         let source = "Ook. Ook? Ook? Ook?";
         if let Err(err) = parser().parse_str(source) {
-            if let ParseError::MiscError(pos, msg) = err {
-                assert_eq!(pos, 10);
-                assert_eq!(msg, "Ook? Ook?: bad Ook sequence");
+            if let ParseError::MiscError {
+                pos_in_chars,
+                message,
+            } = err
+            {
+                assert_eq!(pos_in_chars, 10);
+                assert_eq!(message, "Ook? Ook?: bad Ook sequence");
             } else {
                 panic!("unexpected error: {err}");
             }
