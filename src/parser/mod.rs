@@ -11,16 +11,16 @@ use crate::{
 // A context for parsing.
 //
 // This struct holds a token stream and token unget buffer.
-struct ParseContext<T> {
+struct ParseContext<'a, T> {
     token_stream: T,
 
     // (length, char count, token type) of ungot token
-    unget_buf: Option<TokenInfo>,
+    unget_buf: Option<TokenInfo<'a>>,
 }
 
-impl<T> ParseContext<T>
+impl<'a, T> ParseContext<'a, T>
 where
-    T: TokenStream,
+    T: TokenStream<'a>,
 {
     fn new(token_stream: T) -> Self {
         Self {
@@ -29,14 +29,14 @@ where
         }
     }
 
-    fn next_token_info(&mut self) -> Result<TokenInfo, ParseError> {
+    fn next_token_info(&mut self) -> Result<TokenInfo<'a>, ParseError> {
         if let Some(def) = self.unget_buf.take() {
             return Ok(def);
         }
         self.token_stream.next()
     }
 
-    fn unget_token_info(&mut self, info: TokenInfo) {
+    fn unget_token_info(&mut self, info: TokenInfo<'a>) {
         assert!(self.unget_buf.is_none());
         self.unget_buf = Some(info);
     }
@@ -110,20 +110,21 @@ where
     /// # Returns
     ///
     /// A program or a parse error.
-    pub fn parse_str(&self, source: &str) -> Result<Program, ParseError> {
+    pub fn parse_str<'a>(&'a self, source: &'a str) -> Result<Program, ParseError> {
         let mut context = ParseContext::new(self.tokenizer.token_stream(source));
         Ok(Program::new(Self::parse_internal(&mut context, true)?))
     }
 
-    fn parse_internal(
-        context: &mut ParseContext<impl TokenStream>,
+    fn parse_internal<'a>(
+        context: &mut ParseContext<'a, impl TokenStream<'a>>,
         top_level: bool,
     ) -> Result<Vec<Instruction>, ParseError> {
         let mut instructions = Vec::new();
 
         loop {
             let info = context.next_token_info()?;
-            match info.token_type {
+            let token_type = info.token_type();
+            match token_type {
                 Some(TokenType::PInc) => Self::push_padd(context, &mut instructions, 1)?,
                 Some(TokenType::PDec) => Self::push_padd(context, &mut instructions, -1)?,
                 Some(TokenType::DInc) => Self::push_dadd(context, &mut instructions, 1)?,
@@ -152,8 +153,8 @@ where
         }
     }
 
-    fn push_padd(
-        context: &mut ParseContext<impl TokenStream>,
+    fn push_padd<'a>(
+        context: &mut ParseContext<'a, impl TokenStream<'a>>,
         instructions: &mut Vec<Instruction>,
         initial_operand: isize,
     ) -> Result<(), ParseError> {
@@ -167,8 +168,8 @@ where
         )
     }
 
-    fn push_dadd(
-        context: &mut ParseContext<impl TokenStream>,
+    fn push_dadd<'a>(
+        context: &mut ParseContext<'a, impl TokenStream<'a>>,
         instructions: &mut Vec<Instruction>,
         initial_operand: isize,
     ) -> Result<(), ParseError> {
@@ -182,8 +183,8 @@ where
         )
     }
 
-    fn push_xadd(
-        context: &mut ParseContext<impl TokenStream>,
+    fn push_xadd<'a>(
+        context: &mut ParseContext<'a, impl TokenStream<'a>>,
         instructions: &mut Vec<Instruction>,
         initial_operand: isize,
         inc: TokenType,
@@ -194,9 +195,10 @@ where
 
         loop {
             let info = context.next_token_info()?;
-            if info.token_type == Some(inc) {
+            let token_type = info.token_type();
+            if token_type == Some(inc) {
                 operand += 1;
-            } else if info.token_type == Some(dec) {
+            } else if token_type == Some(dec) {
                 operand -= 1;
             } else {
                 // unget token other than inc or dec (including EOF.)

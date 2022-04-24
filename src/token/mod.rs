@@ -24,21 +24,40 @@ pub enum TokenType {
     LoopTail,
 }
 
+/// A token.
+#[derive(Debug, PartialEq, Eq)]
+pub struct Token<'a> {
+    /// The token type.
+    pub token_type: TokenType,
+    /// The token string.
+    pub token_str: &'a str,
+}
+
 /// A token information.
 #[derive(Debug, PartialEq, Eq)]
-pub struct TokenInfo {
-    /// The token type. `None` means the EOF.
-    pub token_type: Option<TokenType>,
+pub struct TokenInfo<'a> {
+    /// The token. `None` means the EOF.
+    pub token: Option<Token<'a>>,
     /// The position of the token in the source string which is counted in Unicode scalar units.
     /// If `token_type` is `None`, this field points to the position of the EOF.
     pub pos_in_chars: usize,
+}
+
+impl<'a> TokenInfo<'a> {
+    pub fn token_type(&self) -> Option<TokenType> {
+        self.token.as_ref().map(|token| token.token_type)
+    }
+
+    pub fn token_str(&self) -> Option<&'a str> {
+        self.token.as_ref().map(|token| token.token_str)
+    }
 }
 
 /// A tokenizer trait.
 ///
 /// This trait generates a [`TokenStream`] from a source string.
 pub trait Tokenizer<'a> {
-    type Stream: TokenStream;
+    type Stream: TokenStream<'a>;
 
     fn token_stream(&'a self, source: &'a str) -> Self::Stream;
 }
@@ -50,6 +69,6 @@ pub trait Tokenizer<'a> {
 /// # Note
 ///
 /// This is not related with the [`Iterator`] trait.
-pub trait TokenStream {
-    fn next(&mut self) -> Result<TokenInfo, ParseError>;
+pub trait TokenStream<'a> {
+    fn next(&mut self) -> Result<TokenInfo<'a>, ParseError>;
 }
