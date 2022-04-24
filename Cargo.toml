@@ -15,12 +15,13 @@ all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
 
 [features]
-default = []
+default = ["regex"]
 all = ["predefined"]
+regex = ["dep:regex"]
 predefined = ["bf", "ook"]
 bf = []
 ook = []
 
 [dependencies]
 thiserror = "1.0"
-regex = "1.5"
+regex = { version = "1.5", optional = true }

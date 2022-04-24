@@ -56,6 +56,7 @@ fn main() {
 ### Feature flags
 
  - `all` - all features
+ - `regex` - enable Regex tokenizer (default: enabled)
  - `predefined` - predefined parsers below
  - `bf` - predefined Brainfuck parser
  - `ook` - predefined Ook! parser
