@@ -102,8 +102,8 @@ mod test {
         let mut output = vec![];
         let result = run(&program, input, &mut output);
         if let Err(e) = result {
-            if let RuntimeError::OutOfMemoryBounds(pointer) = e {
-                assert_eq!(pointer, -1);
+            if let RuntimeError::OutOfMemoryBounds { address } = e {
+                assert_eq!(address, -1);
             } else {
                 panic!("unexpected error: {e}");
             }
@@ -120,8 +120,8 @@ mod test {
         let mut output = vec![];
         let result = run_with_memsize(&program, input, &mut output, MemorySize::RightInfinite);
         if let Err(e) = result {
-            if let RuntimeError::OutOfMemoryBounds(pointer) = e {
-                assert_eq!(pointer, -1);
+            if let RuntimeError::OutOfMemoryBounds { address } = e {
+                assert_eq!(address, -1);
             } else {
                 panic!("unexpected error: {e}");
             }
@@ -150,8 +150,8 @@ mod test {
         let mut output = vec![];
         let result = run(&program, input, &mut output);
         if let Err(e) = result {
-            if let RuntimeError::OutOfMemoryBounds(pointer) = e {
-                assert_eq!(pointer, 30000);
+            if let RuntimeError::OutOfMemoryBounds { address } = e {
+                assert_eq!(address, 30000);
             } else {
                 panic!("unexpected error: {e}");
             }

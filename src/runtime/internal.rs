@@ -36,7 +36,7 @@ impl Memory {
         if address >= 0 {
             if (address as usize) >= self.right_data.len() {
                 if let MemorySize::Fixed(_) = self.size {
-                    return Err(RuntimeError::OutOfMemoryBounds(address));
+                    return Err(RuntimeError::OutOfMemoryBounds { address });
                 }
                 self.right_data.resize(address as usize + 1, 0);
             }
@@ -48,7 +48,7 @@ impl Memory {
             }
             Ok(&mut self.left_data[left_address])
         } else {
-            Err(RuntimeError::OutOfMemoryBounds(address))
+            Err(RuntimeError::OutOfMemoryBounds { address })
         }
     }
 }
