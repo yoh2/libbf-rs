@@ -1,6 +1,11 @@
 //! Token related definitions.
+#![cfg_attr(docsrs, feature(doc_cfg))]
+
 use crate::error::ParseError;
 
+#[cfg(feature = "regex")]
+#[cfg_attr(docsrs, doc(cfg(feature = "regex")))]
+pub mod regex;
 pub mod simple;
 
 /// A token type.
