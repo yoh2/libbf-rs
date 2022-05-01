@@ -1,5 +1,87 @@
 //! Parsed program of Brainfuck-like language and related definitions.
+use crate::token::TokenInfo;
 use std::ops::Index;
+
+/// A parsed program with token informations.
+#[derive(Debug)]
+pub struct FatProgram<'a>(Vec<FatInstruction<'a>>);
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct FatInstruction<'a> {
+    pub kind: FatInstructionKind<'a>,
+    pub tokens: Vec<TokenInfo<'a>>,
+}
+
+/// An intermediate instruction with corresponding token information of Brainfuck-like language.
+#[derive(Debug, PartialEq, Eq)]
+pub enum FatInstructionKind<'a> {
+    /// Unified pointer increments/decrements
+    PAdd(isize),
+
+    /// Unified data increesments/decrements
+    DAdd(isize),
+
+    /// Write one byte at the current pointer
+    Output,
+
+    /// Read one byte and store it at the current pointer
+    Input,
+
+    /// Loop until the value at the current pointer is non-zero
+    UntilZero(Vec<FatInstruction<'a>>),
+
+    /// No-operation, which corresponds to a sequence of PIncs and PDecs of the same number or
+    /// DIncs and DDecs of the same number.
+    Nop,
+}
+
+impl<'a> FatInstruction<'a> {
+    pub fn as_instruction(&self) -> Option<Instruction> {
+        self.kind.as_instruction()
+    }
+}
+
+impl<'a> FatInstructionKind<'a> {
+    pub fn as_instruction(&self) -> Option<Instruction> {
+        match self {
+            FatInstructionKind::PAdd(n) => Some(Instruction::PAdd(*n)),
+            FatInstructionKind::DAdd(n) => Some(Instruction::DAdd(*n)),
+            FatInstructionKind::Output => Some(Instruction::Output),
+            FatInstructionKind::Input => Some(Instruction::Input),
+            FatInstructionKind::UntilZero(insts) => Some(Instruction::UntilZero(
+                fat_instructions_to_instructins(insts),
+            )),
+            FatInstructionKind::Nop => None,
+        }
+    }
+}
+
+impl<'a> FatProgram<'a> {
+    pub fn new(instructions: Vec<FatInstruction<'a>>) -> Self {
+        FatProgram(instructions)
+    }
+
+    pub fn instructions(&self) -> &[FatInstruction<'a>] {
+        &self.0
+    }
+
+    pub fn as_program(&self) -> Program {
+        Program::new(fat_instructions_to_instructins(self.instructions()))
+    }
+}
+
+impl<'a> From<FatProgram<'a>> for Program {
+    fn from(x: FatProgram<'a>) -> Self {
+        x.as_program()
+    }
+}
+
+fn fat_instructions_to_instructins(fat_instructions: &[FatInstruction]) -> Vec<Instruction> {
+    fat_instructions
+        .iter()
+        .filter_map(|inst| inst.kind.as_instruction())
+        .collect()
+}
 
 /// A parsed program of Brainfuck-link language.
 ///
@@ -126,6 +208,52 @@ fn instruction_at<'a>(instructions: &'a [Instruction], index: &[usize]) -> &'a I
 #[cfg(test)]
 mod test {
     use super::*;
+
+    #[test]
+    fn fat_program_as_program() {
+        let fat_program = FatProgram::new(vec![
+            FatInstruction {
+                kind: FatInstructionKind::PAdd(1),
+                tokens: vec![],
+            },
+            FatInstruction {
+                kind: FatInstructionKind::DAdd(2),
+                tokens: vec![],
+            },
+            FatInstruction {
+                kind: FatInstructionKind::Input,
+                tokens: vec![],
+            },
+            FatInstruction {
+                kind: FatInstructionKind::Output,
+                tokens: vec![],
+            },
+            FatInstruction {
+                kind: FatInstructionKind::UntilZero(vec![
+                    FatInstruction {
+                        kind: FatInstructionKind::PAdd(-1),
+                        tokens: vec![],
+                    },
+                    FatInstruction {
+                        kind: FatInstructionKind::DAdd(-2),
+                        tokens: vec![],
+                    },
+                ]),
+                tokens: vec![],
+            },
+        ]);
+
+        let expected = [
+            Instruction::PAdd(1),
+            Instruction::DAdd(2),
+            Instruction::Input,
+            Instruction::Output,
+            Instruction::UntilZero(vec![Instruction::PAdd(-1), Instruction::DAdd(-2)]),
+        ];
+
+        assert_eq!(fat_program.as_program().instructions(), &expected);
+        assert_eq!(Program::from(fat_program).instructions(), &expected);
+    }
 
     #[test]
     fn empty_first_index() {
