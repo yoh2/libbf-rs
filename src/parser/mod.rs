@@ -4,7 +4,7 @@ use std::io::Read;
 
 use crate::{
     error::{ParseError, ParseOrIoError},
-    program::{Instruction, Program},
+    program::{FatInstruction, FatInstructionKind, FatProgram, Instruction, Program},
     token::{TokenInfo, TokenStream, TokenType, Tokenizer},
 };
 
@@ -216,4 +216,170 @@ where
         }
         Ok(())
     }
+
+    /// Parses a program from a string.
+    ///
+    /// # Arguments
+    ///
+    ///  - `source`: A fat program source string.
+    ///
+    /// # Returns
+    ///
+    /// A program or a parse error.
+    pub fn parse_str_fat<'a>(&'a self, source: &'a str) -> Result<FatProgram, ParseError> {
+        let mut context = ParseContext::new(self.tokenizer.token_stream(source));
+        let ParsedFatValue {
+            instructions,
+            last_token,
+        } = Self::parse_internal_fat(&mut context, true)?;
+        assert!(last_token.is_none());
+        Ok(FatProgram::new(instructions))
+    }
+
+    fn parse_internal_fat<'a>(
+        context: &mut ParseContext<'a, impl TokenStream<'a>>,
+        top_level: bool,
+    ) -> Result<ParsedFatValue<'a>, ParseError> {
+        let mut instructions = Vec::new();
+
+        loop {
+            let info = context.next_token_info()?;
+            let token_type = info.token_type();
+            match token_type {
+                Some(TokenType::PInc) => Self::push_padd_fat(context, &mut instructions, info, 1)?,
+                Some(TokenType::PDec) => Self::push_padd_fat(context, &mut instructions, info, -1)?,
+                Some(TokenType::DInc) => Self::push_dadd_fat(context, &mut instructions, info, 1)?,
+                Some(TokenType::DDec) => Self::push_dadd_fat(context, &mut instructions, info, -1)?,
+                Some(TokenType::Output) => instructions.push(FatInstruction {
+                    kind: FatInstructionKind::Output,
+                    tokens: vec![info],
+                }),
+                Some(TokenType::Input) => instructions.push(FatInstruction {
+                    kind: FatInstructionKind::Input,
+                    tokens: vec![info],
+                }),
+                Some(TokenType::LoopHead) => {
+                    let ParsedFatValue {
+                        instructions: sub,
+                        last_token,
+                    } = Self::parse_internal_fat(context, false)?;
+                    let mut tokens = Vec::with_capacity(sub.len() + 2);
+                    tokens.push(info);
+                    tokens.extend(sub.iter().flat_map(|i| i.tokens.iter()));
+                    if let Some(last) = last_token {
+                        tokens.push(last);
+                    } else {
+                        unreachable!("last token must be present");
+                    }
+
+                    instructions.push(FatInstruction {
+                        kind: FatInstructionKind::UntilZero(sub),
+                        tokens,
+                    });
+                }
+                Some(TokenType::LoopTail) => {
+                    if top_level {
+                        return Err(ParseError::UnexpectedEndOfLoop {
+                            pos_in_chars: info.pos_in_chars,
+                        });
+                    } else {
+                        return Ok(ParsedFatValue {
+                            instructions,
+                            last_token: Some(info),
+                        });
+                    }
+                }
+
+                None => {
+                    return if top_level {
+                        Ok(ParsedFatValue {
+                            instructions,
+                            last_token: None,
+                        })
+                    } else {
+                        Err(ParseError::UnexpectedEndOfFile {
+                            pos_in_chars: info.pos_in_chars,
+                        })
+                    }
+                }
+            }
+        }
+    }
+
+    fn push_padd_fat<'a>(
+        context: &mut ParseContext<'a, impl TokenStream<'a>>,
+        instructions: &mut Vec<FatInstruction<'a>>,
+        initial_token: TokenInfo<'a>,
+        initial_operand: isize,
+    ) -> Result<(), ParseError> {
+        Self::push_xadd_fat(
+            context,
+            instructions,
+            initial_token,
+            initial_operand,
+            TokenType::PInc,
+            TokenType::PDec,
+            FatInstructionKind::PAdd,
+        )
+    }
+
+    fn push_dadd_fat<'a>(
+        context: &mut ParseContext<'a, impl TokenStream<'a>>,
+        instructions: &mut Vec<FatInstruction<'a>>,
+        initial_token: TokenInfo<'a>,
+        initial_operand: isize,
+    ) -> Result<(), ParseError> {
+        Self::push_xadd_fat(
+            context,
+            instructions,
+            initial_token,
+            initial_operand,
+            TokenType::DInc,
+            TokenType::DDec,
+            FatInstructionKind::DAdd,
+        )
+    }
+
+    fn push_xadd_fat<'a>(
+        context: &mut ParseContext<'a, impl TokenStream<'a>>,
+        instructions: &mut Vec<FatInstruction<'a>>,
+        initial_token: TokenInfo<'a>,
+        initial_operand: isize,
+        inc: TokenType,
+        dec: TokenType,
+        gen: fn(isize) -> FatInstructionKind<'a>,
+    ) -> Result<(), ParseError> {
+        let mut tokens = vec![initial_token];
+        let mut operand = initial_operand;
+
+        loop {
+            let info = context.next_token_info()?;
+            let token_type = info.token_type();
+            if token_type == Some(inc) {
+                operand += 1;
+                tokens.push(info);
+            } else if token_type == Some(dec) {
+                operand -= 1;
+                tokens.push(info);
+            } else {
+                // unget token other than inc or dec (including EOF.)
+                context.unget_token_info(info);
+                break;
+            }
+        }
+
+        let kind = if operand == 0 {
+            FatInstructionKind::Nop
+        } else {
+            gen(operand)
+        };
+        instructions.push(FatInstruction { kind, tokens });
+
+        Ok(())
+    }
+}
+
+struct ParsedFatValue<'a> {
+    instructions: Vec<FatInstruction<'a>>,
+    last_token: Option<TokenInfo<'a>>,
 }
