@@ -383,3 +383,336 @@ struct ParsedFatValue<'a> {
     instructions: Vec<FatInstruction<'a>>,
     last_token: Option<TokenInfo<'a>>,
 }
+
+#[cfg(test)]
+mod test {
+
+    use super::*;
+    use crate::token::{Token, TokenType};
+
+    #[derive(Clone, Copy)]
+    struct TestTokenizer {
+        tokens: &'static [TokenInfo<'static>],
+        last_pos_in_chars: usize,
+    }
+
+    impl<'a> Tokenizer<'a> for TestTokenizer {
+        type Stream = TestStream<std::iter::Cloned<std::slice::Iter<'a, TokenInfo<'a>>>>;
+
+        fn token_stream(&'a self, _source: &'a str) -> Self::Stream {
+            TestStream {
+                tokens: self.tokens.iter().cloned(),
+                last_pos_in_chars: self.last_pos_in_chars,
+            }
+        }
+    }
+
+    struct TestStream<I> {
+        tokens: I,
+        last_pos_in_chars: usize,
+    }
+
+    impl<'a, I> TokenStream<'a> for TestStream<I>
+    where
+        I: Iterator<Item = TokenInfo<'a>>,
+    {
+        fn next(&mut self) -> Result<TokenInfo<'a>, ParseError> {
+            Ok(self.tokens.next().unwrap_or(TokenInfo {
+                token: None,
+                pos_in_chars: self.last_pos_in_chars,
+            }))
+        }
+    }
+
+    const fn some_token(token_type: TokenType, token_str: &str) -> Option<Token> {
+        Some(Token {
+            token_type,
+            token_str,
+        })
+    }
+
+    const TEST_TOKENIZER: TestTokenizer = TestTokenizer {
+        tokens: &[
+            // PAdd(-1)
+            TokenInfo {
+                token: some_token(TokenType::PInc, ">"),
+                pos_in_chars: 0,
+            },
+            TokenInfo {
+                token: some_token(TokenType::PDec, "<"),
+                pos_in_chars: 1,
+            },
+            TokenInfo {
+                token: some_token(TokenType::PDec, "<"),
+                pos_in_chars: 2,
+            },
+            // DAdd(1)
+            TokenInfo {
+                token: some_token(TokenType::DInc, "+"),
+                pos_in_chars: 3,
+            },
+            TokenInfo {
+                token: some_token(TokenType::DDec, "-"),
+                pos_in_chars: 5,
+            },
+            TokenInfo {
+                token: some_token(TokenType::DInc, "+"),
+                pos_in_chars: 7,
+            },
+            // head of UntileZero(...)
+            TokenInfo {
+                token: some_token(TokenType::LoopHead, "["),
+                pos_in_chars: 11,
+            },
+            // ... Input
+            TokenInfo {
+                token: some_token(TokenType::Input, ","),
+                pos_in_chars: 13,
+            },
+            // ... Output
+            TokenInfo {
+                token: some_token(TokenType::Output, "."),
+                pos_in_chars: 17,
+            },
+            // ... Nop (PInc/PDec)
+            TokenInfo {
+                token: some_token(TokenType::PDec, ">"),
+                pos_in_chars: 19,
+            },
+            TokenInfo {
+                token: some_token(TokenType::PInc, "<"),
+                pos_in_chars: 23,
+            },
+            // ... Nop (DInc/DDec)
+            TokenInfo {
+                token: some_token(TokenType::DDec, "+"),
+                pos_in_chars: 29,
+            },
+            TokenInfo {
+                token: some_token(TokenType::DInc, "-"),
+                pos_in_chars: 31,
+            },
+            // tail of UntilZero
+            TokenInfo {
+                token: some_token(TokenType::LoopTail, "]"),
+                pos_in_chars: 37,
+            },
+        ],
+        last_pos_in_chars: 41,
+    };
+
+    const TEST_TOKENIZER_UNEXPECTED_NDO_OF_LOOP: TestTokenizer = TestTokenizer {
+        tokens: &[
+            // tail of UntilZero
+            TokenInfo {
+                token: some_token(TokenType::LoopTail, "]"),
+                pos_in_chars: 1,
+            },
+        ],
+        last_pos_in_chars: 2,
+    };
+
+    const TEST_TOKENIZER_UNEXPECTED_NDO_OF_FILE: TestTokenizer = TestTokenizer {
+        tokens: &[
+            // tail of UntilZero
+            TokenInfo {
+                token: some_token(TokenType::LoopHead, "["),
+                pos_in_chars: 1,
+            },
+        ],
+        last_pos_in_chars: 2,
+    };
+
+    // TODO: change to use assert_matches macro after the macro is stabilized.
+    macro_rules! assert_matches_simple {
+        ($actual:expr, $pattern:pat) => {
+            match $actual {
+                $pattern => {}
+                _ => panic!(
+                    "assertion failed: `{:?}` does not match `{:?}`",
+                    $actual,
+                    stringify!($pattern)
+                ),
+            }
+        };
+    }
+
+    #[test]
+    fn test_parse_str() {
+        let parser = Parser::new(TEST_TOKENIZER);
+
+        // source is dummy.
+        let parsed = parser.parse_str("").expect("must be ok");
+
+        assert_eq!(
+            parsed.instructions(),
+            [
+                Instruction::PAdd(-1),
+                Instruction::DAdd(1),
+                Instruction::UntilZero(vec![Instruction::Input, Instruction::Output,],),
+            ],
+        );
+    }
+
+    #[test]
+    fn test_parse_str_unexpected_end_of_loop() {
+        let parser = Parser::new(TEST_TOKENIZER_UNEXPECTED_NDO_OF_LOOP);
+
+        // source is dummy
+        let error = parser.parse_str("").expect_err("must be err");
+        assert_matches_simple!(error, ParseError::UnexpectedEndOfLoop { pos_in_chars: 1 });
+    }
+
+    #[test]
+    fn test_parse_str_unexpected_end_of_file() {
+        let parser = Parser::new(TEST_TOKENIZER_UNEXPECTED_NDO_OF_FILE);
+
+        // source is dummy
+        let error = parser.parse_str("").expect_err("must be err");
+        assert_matches_simple!(error, ParseError::UnexpectedEndOfFile { pos_in_chars: 2 });
+    }
+
+    #[test]
+    fn test_parse_str_fat() {
+        let parser = Parser::new(TEST_TOKENIZER);
+
+        // source is dummy.
+        let parsed = parser.parse_str_fat("").expect("must be ok");
+
+        assert_eq!(
+            parsed.instructions(),
+            [
+                FatInstruction {
+                    kind: FatInstructionKind::PAdd(-1),
+                    tokens: vec![
+                        TokenInfo {
+                            token: some_token(TokenType::PInc, ">"),
+                            pos_in_chars: 0,
+                        },
+                        TokenInfo {
+                            token: some_token(TokenType::PDec, "<"),
+                            pos_in_chars: 1,
+                        },
+                        TokenInfo {
+                            token: some_token(TokenType::PDec, "<"),
+                            pos_in_chars: 2,
+                        },
+                    ],
+                },
+                FatInstruction {
+                    kind: FatInstructionKind::DAdd(1),
+                    tokens: vec![
+                        TokenInfo {
+                            token: some_token(TokenType::DInc, "+"),
+                            pos_in_chars: 3,
+                        },
+                        TokenInfo {
+                            token: some_token(TokenType::DDec, "-"),
+                            pos_in_chars: 5,
+                        },
+                        TokenInfo {
+                            token: some_token(TokenType::DInc, "+"),
+                            pos_in_chars: 7,
+                        },
+                    ],
+                },
+                FatInstruction {
+                    kind: FatInstructionKind::UntilZero(vec![
+                        FatInstruction {
+                            kind: FatInstructionKind::Input,
+                            tokens: vec![TokenInfo {
+                                token: some_token(TokenType::Input, ","),
+                                pos_in_chars: 13,
+                            },],
+                        },
+                        FatInstruction {
+                            kind: FatInstructionKind::Output,
+                            tokens: vec![TokenInfo {
+                                token: some_token(TokenType::Output, "."),
+                                pos_in_chars: 17,
+                            },],
+                        },
+                        FatInstruction {
+                            kind: FatInstructionKind::Nop,
+                            tokens: vec![
+                                TokenInfo {
+                                    token: some_token(TokenType::PDec, ">"),
+                                    pos_in_chars: 19,
+                                },
+                                TokenInfo {
+                                    token: some_token(TokenType::PInc, "<"),
+                                    pos_in_chars: 23,
+                                },
+                            ],
+                        },
+                        FatInstruction {
+                            kind: FatInstructionKind::Nop,
+                            tokens: vec![
+                                TokenInfo {
+                                    token: some_token(TokenType::DDec, "+"),
+                                    pos_in_chars: 29,
+                                },
+                                TokenInfo {
+                                    token: some_token(TokenType::DInc, "-"),
+                                    pos_in_chars: 31,
+                                },
+                            ],
+                        }
+                    ],),
+                    tokens: vec![
+                        TokenInfo {
+                            token: some_token(TokenType::LoopHead, "["),
+                            pos_in_chars: 11,
+                        },
+                        TokenInfo {
+                            token: some_token(TokenType::Input, ","),
+                            pos_in_chars: 13,
+                        },
+                        TokenInfo {
+                            token: some_token(TokenType::Output, "."),
+                            pos_in_chars: 17,
+                        },
+                        TokenInfo {
+                            token: some_token(TokenType::PDec, ">"),
+                            pos_in_chars: 19,
+                        },
+                        TokenInfo {
+                            token: some_token(TokenType::PInc, "<"),
+                            pos_in_chars: 23,
+                        },
+                        TokenInfo {
+                            token: some_token(TokenType::DDec, "+"),
+                            pos_in_chars: 29,
+                        },
+                        TokenInfo {
+                            token: some_token(TokenType::DInc, "-"),
+                            pos_in_chars: 31,
+                        },
+                        TokenInfo {
+                            token: some_token(TokenType::LoopTail, "]"),
+                            pos_in_chars: 37,
+                        },
+                    ],
+                },
+            ],
+        );
+    }
+
+    #[test]
+    fn test_parse_str_fat_unexpected_end_of_loop() {
+        let parser = Parser::new(TEST_TOKENIZER_UNEXPECTED_NDO_OF_LOOP);
+
+        // source is dummy
+        let error = parser.parse_str_fat("").expect_err("must be err");
+        assert_matches_simple!(error, ParseError::UnexpectedEndOfLoop { pos_in_chars: 1 });
+    }
+
+    #[test]
+    fn test_parse_str_fat_unexpected_end_of_file() {
+        let parser = Parser::new(TEST_TOKENIZER_UNEXPECTED_NDO_OF_FILE);
+
+        // source is dummy
+        let error = parser.parse_str_fat("").expect_err("must be err");
+        assert_matches_simple!(error, ParseError::UnexpectedEndOfFile { pos_in_chars: 2 });
+    }
+}
