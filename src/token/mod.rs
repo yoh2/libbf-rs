@@ -30,7 +30,7 @@ pub enum TokenType {
 }
 
 /// A token.
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct Token<'a> {
     /// The token type.
     pub token_type: TokenType,
@@ -39,7 +39,7 @@ pub struct Token<'a> {
 }
 
 /// A token information.
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct TokenInfo<'a> {
     /// The token. `None` means the EOF.
     pub token: Option<Token<'a>>,
